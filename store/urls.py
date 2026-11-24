@@ -1,0 +1,125 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    # Entry Point & Customer Views (Root URL redirects to Login)
+    path('', views.root_redirect, name='root'),
+    path('home/', views.home, name='home'),
+    path('products/', views.product_list, name='product_list'),
+    path('product/<slug:slug>/', views.product_detail, name='product_detail'),
+    path('cart/', views.cart_view, name='cart'),
+    path('cart/add/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
+    path('cart/update/<int:item_id>/', views.update_cart_item, name='update_cart_item'),
+    path('cart/remove/<int:item_id>/', views.remove_from_cart, name='remove_from_cart'),
+    path('cart/bulk-remove/', views.bulk_remove_from_cart, name='bulk_remove_from_cart'),
+    path('checkout/', views.checkout, name='checkout'),
+    path('payment/gateway/<str:order_number>/', views.payment_gateway, name='payment_gateway'),
+    path('payment/complete/<str:order_number>/', views.payment_complete, name='payment_complete'),
+    path('payment/cancel/<str:order_number>/', views.payment_cancel, name='payment_cancel'),
+    path('order-success/<str:order_number>/', views.order_success, name='order_success'),
+    path('orders/', views.order_history, name='order_history'),
+    path('orders/bulk-delete/', views.customer_bulk_delete_orders, name='customer_bulk_delete_orders'),
+    path('orders/<str:order_number>/', views.order_detail, name='order_detail'),
+    path('orders/<str:order_number>/cancel/', views.customer_cancel_order, name='customer_cancel_order'),
+    path('orders/<str:order_number>/delete/', views.customer_delete_order, name='customer_delete_order'),
+    path('orders/<str:order_number>/invoice/', views.order_invoice, name='order_invoice'),
+    path('api/check-pincode/', views.pincode_check, name='pincode_check'),
+
+    # Real-Time Notifications Center (Customer & Admin)
+    path('notifications/', views.notifications_list, name='notifications_list'),
+    path('notifications/<int:pk>/read/', views.notification_mark_read, name='notification_mark_read'),
+    path('notifications/mark-all-read/', views.notifications_mark_all_read, name='notifications_mark_all_read'),
+    path('notifications/<int:pk>/delete/', views.notification_delete, name='notification_delete'),
+    path('notifications/bulk-delete/', views.notifications_bulk_delete, name='notifications_bulk_delete'),
+
+    # Address Management Views
+    path('addresses/', views.address_list, name='address_list'),
+    path('addresses/add/', views.address_add, name='address_add'),
+    path('addresses/<int:pk>/edit/', views.address_edit, name='address_edit'),
+    path('addresses/<int:pk>/delete/', views.address_delete, name='address_delete'),
+
+    # Customer Profile & Account Views
+    path('profile/', views.customer_profile, name='customer_profile'),
+    path('account/profile/', views.customer_profile, name='profile'),
+
+    # Auth & Customer OTP Views
+    path('register/', views.user_register, name='register'),
+    path('verify-otp/', views.verify_registration_otp, name='verify_registration_otp'),
+    path('resend-otp/', views.resend_registration_otp, name='resend_registration_otp'),
+    path('login/', views.user_login, name='login'),
+    path('login-otp/', views.request_login_otp, name='login_otp'),
+    path('verify-login-otp/', views.verify_login_otp, name='verify_login_otp'),
+    path('resend-login-otp/', views.resend_login_otp, name='resend_login_otp'),
+    path('logout/', views.user_logout, name='logout'),
+
+    # Interactive AJAX OTP Endpoints
+    path('api/send-otp/', views.api_send_otp, name='api_send_otp'),
+    path('api/verify-otp/', views.api_verify_otp, name='api_verify_otp'),
+    path('api/send-cod-otp/', views.api_send_cod_otp, name='api_send_cod_otp'),
+    path('api/verify-cod-otp/', views.api_verify_cod_otp, name='api_verify_cod_otp'),
+    path('api/send-password-reset-otp/', views.api_send_password_reset_otp, name='api_send_password_reset_otp'),
+    path('api/reset-password-otp/', views.api_reset_password_otp, name='api_reset_password_otp'),
+
+    # Admin Management Views (Protected with role-based permissions)
+    path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('admin-dashboard/products/', views.admin_products, name='admin_products'),
+    path('admin-dashboard/products/add/', views.admin_product_create, name='admin_product_create'),
+    path('admin-dashboard/products/<int:pk>/edit/', views.admin_product_edit, name='admin_product_edit'),
+    path('admin-dashboard/products/<int:pk>/delete/', views.admin_product_delete, name='admin_product_delete'),
+    path('admin-dashboard/products/bulk-delete/', views.admin_product_bulk_delete, name='admin_product_bulk_delete'),
+    path('admin-dashboard/categories/', views.admin_categories, name='admin_categories'),
+    path('admin-dashboard/categories/<int:pk>/edit/', views.admin_category_edit, name='admin_category_edit'),
+    path('admin-dashboard/categories/<int:pk>/delete/', views.admin_category_delete, name='admin_category_delete'),
+    path('admin-dashboard/orders/', views.admin_orders, name='admin_orders'),
+    path('admin-dashboard/orders/bulk-delete/', views.admin_order_bulk_delete, name='admin_order_bulk_delete'),
+    path('admin-dashboard/orders/<str:order_number>/delete/', views.admin_order_delete, name='admin_order_delete'),
+    path('admin-dashboard/orders/<str:order_number>/', views.admin_order_detail, name='admin_order_detail'),
+    path('admin-dashboard/orders/<str:order_number>/assign-delivery/', views.admin_order_assign_delivery, name='admin_order_assign_delivery'),
+    path('admin-dashboard/customers/', views.admin_customers, name='admin_customers'),
+    path('admin-dashboard/customers/create/', views.admin_create_user, name='admin_create_user'),
+    path('admin-dashboard/customers/<int:pk>/toggle/', views.admin_customer_toggle_status, name='admin_customer_toggle_status'),
+    path('admin-dashboard/customers/<int:pk>/toggle-role/', views.admin_user_toggle_role, name='admin_user_toggle_role'),
+    path('admin-dashboard/customers/<int:pk>/delete/', views.admin_customer_delete, name='admin_customer_delete'),
+    path('admin-dashboard/customers/bulk-delete/', views.admin_customer_bulk_delete, name='admin_customer_bulk_delete'),
+    path('admin-dashboard/sellers/<int:pk>/', views.admin_seller_detail, name='admin_seller_detail'),
+    path('admin-dashboard/sellers/<int:pk>/access/', views.admin_login_as_seller, name='admin_login_as_seller'),
+    path('admin-dashboard/delivery/<int:pk>/access/', views.admin_login_as_delivery, name='admin_login_as_delivery'),
+    path('admin-dashboard/switch-back/', views.admin_switch_back, name='admin_switch_back'),
+    path('admin-dashboard/payments/', views.admin_payment_settings, name='admin_payment_settings'),
+    path('admin-dashboard/broadcast/', views.admin_broadcast_notification, name='admin_broadcast_notification'),
+
+    # Seller Portal Views (Protected with @seller_required)
+    path('seller-dashboard/', views.seller_dashboard, name='seller_dashboard'),
+    path('seller-dashboard/products/', views.seller_products, name='seller_products'),
+    path('seller-dashboard/products/add/', views.seller_product_create, name='seller_product_create'),
+    path('seller-dashboard/products/<int:pk>/edit/', views.seller_product_edit, name='seller_product_edit'),
+    path('seller-dashboard/products/<int:pk>/delete/', views.seller_product_delete, name='seller_product_delete'),
+    path('seller-dashboard/products/bulk-delete/', views.seller_bulk_delete_products, name='seller_bulk_delete_products'),
+    path('seller-dashboard/products/<int:pk>/stock/', views.seller_update_stock, name='seller_update_stock'),
+    path('seller-dashboard/products/<int:pk>/toggle-active/', views.seller_product_toggle_status, name='seller_product_toggle_status'),
+    path('seller-dashboard/categories/', views.seller_categories, name='seller_categories'),
+    path('seller-dashboard/categories/<int:pk>/edit/', views.seller_category_edit, name='seller_category_edit'),
+    path('seller-dashboard/categories/<int:pk>/delete/', views.seller_category_delete, name='seller_category_delete'),
+    path('seller-dashboard/categories/bulk-delete/', views.seller_bulk_delete_categories, name='seller_bulk_delete_categories'),
+    path('seller-dashboard/items/<int:item_id>/status/', views.seller_update_item_status, name='seller_update_item_status'),
+    path('seller-dashboard/orders/', views.seller_orders, name='seller_orders'),
+    path('seller-dashboard/orders/bulk-delete/', views.seller_bulk_delete_orders, name='seller_bulk_delete_orders'),
+    path('seller-dashboard/orders/<str:order_number>/', views.seller_order_detail, name='seller_order_detail'),
+    path('seller-dashboard/orders/<str:order_number>/delete/', views.seller_order_delete, name='seller_order_delete'),
+    path('seller-dashboard/profile/', views.seller_profile, name='seller_profile'),
+
+    # Delivery Partner Views (Protected with @delivery_required)
+    path('delivery-dashboard/', views.delivery_dashboard, name='delivery_dashboard'),
+    path('delivery-dashboard/toggle-availability/', views.delivery_toggle_availability, name='delivery_toggle_availability'),
+    path('delivery-dashboard/orders/bulk-delete/', views.delivery_bulk_delete, name='delivery_bulk_delete'),
+    path('delivery-dashboard/orders/<str:order_number>/delete/', views.delivery_order_delete, name='delivery_order_delete'),
+    path('delivery-dashboard/delivery/<str:order_number>/', views.delivery_order_detail, name='delivery_order_detail'),
+    path('delivery-dashboard/orders/<str:order_number>/', views.delivery_order_detail),
+    path('delivery-dashboard/delivery/<str:order_number>/update-status/', views.delivery_update_status, name='delivery_update_status'),
+    path('delivery-dashboard/orders/<str:order_number>/update-status/', views.delivery_update_status),
+    path('delivery-dashboard/history/', views.delivery_history, name='delivery_history'),
+    path('delivery-dashboard/profile/', views.delivery_profile, name='delivery_profile'),
+
+    # Theme Preference API (Light, Dark, System Preference)
+    path('api/update-theme/', views.api_update_theme, name='api_update_theme'),
+]

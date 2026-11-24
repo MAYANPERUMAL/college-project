@@ -1,0 +1,118 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}{{ title }} - Tech Mart Admin{% endblock %}
+
+{% block admin_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1">{{ title }}</h3>
+                <p class="text-muted small mb-0">Fill in product information, pricing, inventory stock, and specifications</p>
+            </div>
+            <a href="{% url 'admin_products' %}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+                <span class="material-symbols-outlined fs-6">arrow_back</span>
+                <span>Back to Products</span>
+            </a>
+        </div>
+
+        <div class="card border rounded-4 p-4 shadow-sm bg-white mb-5">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="row g-3">
+                    <!-- Category & Brand -->
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Category *</label>
+                        {{ form.category }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Brand * (e.g. Apple, Sony, Samsung, OnePlus)</label>
+                        {{ form.brand }}
+                    </div>
+
+                    <!-- Product Name & Model -->
+                    <div class="col-md-8">
+                        <label class="form-label small fw-semibold">Full Product Name *</label>
+                        {{ form.name }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Model Number</label>
+                        {{ form.model_number }}
+                    </div>
+
+                    <!-- Pricing & Stock -->
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Selling Price in ₹ *</label>
+                        {{ form.price }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Maximum Retail Price (MRP) in ₹ *</label>
+                        {{ form.mrp }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Initial Stock (Units) *</label>
+                        {{ form.stock }}
+                    </div>
+
+                    <!-- Image URL or File -->
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Direct Image URL (External CDN)</label>
+                        {{ form.image_url }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Or Upload Local Image</label>
+                        {{ form.image }}
+                    </div>
+
+                    <!-- Warranty & Deal Tag -->
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Warranty Information</label>
+                        {{ form.warranty_info }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Deal Tag (e.g. Mega Fest Deal, Deal of the Day)</label>
+                        {{ form.deal_tag }}
+                    </div>
+
+                    <!-- Specs & Description -->
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">Key Technical Specifications (One feature per line)</label>
+                        {{ form.specs }}
+                        <small class="text-muted d-block" style="font-size: 0.72rem;">e.g.:<br>• 13.6-inch Liquid Retina Display with True Tone<br>• Apple M3 chip with 8-core CPU and 10-core GPU<br>• Up to 18 hours of battery life</small>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">Product Description *</label>
+                        {{ form.description }}
+                    </div>
+
+                    <!-- Badges -->
+                    <div class="col-md-6">
+                        <div class="form-check mt-2">
+                            {{ form.is_featured }}
+                            <label class="form-check-label fw-semibold small" for="{{ form.is_featured.id_for_label }}">
+                                Mark as Featured Product (Showcase on Homepage)
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mt-2">
+                            {{ form.is_deal }}
+                            <label class="form-check-label fw-semibold small text-danger" for="{{ form.is_deal.id_for_label }}">
+                                Mark as Deal of the Day (Spotlight section)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-4 pt-3 border-top d-flex gap-2 justify-content-end">
+                        <a href="{% url 'admin_products' %}" class="btn btn-light border px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-bold">
+                            Save Product
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

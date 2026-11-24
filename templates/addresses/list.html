@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}My Saved Addresses - Tech Mart{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 px-xl-5 my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3 small">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'order_history' %}" class="text-decoration-none">My Account</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Saved Addresses</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">Your Delivery Addresses</h3>
+            <p class="text-muted small mb-0">Manage and edit your home, office, and other shipping locations</p>
+        </div>
+        <button class="btn btn-primary btn-sm fw-semibold d-flex align-items-center gap-1" data-bs-toggle="collapse" data-bs-target="#addNewAddressBox">
+            <span class="material-symbols-outlined fs-6">add</span> Add New Address
+        </button>
+    </div>
+
+    <!-- Collapsible Add Address Form -->
+    <div class="collapse mb-4" id="addNewAddressBox">
+        <div class="card border rounded-4 p-4 shadow-sm bg-white">
+            <h5 class="fw-bold mb-3 border-bottom pb-2">Add a New Delivery Address</h5>
+            <form method="post" action="{% url 'address_add' %}">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Full Name *</label>
+                        {{ form.full_name }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Phone Number *</label>
+                        {{ form.phone }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">Flat, House no., Building, Apartment *</label>
+                        {{ form.address_line1 }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Area, Street, Sector, Village</label>
+                        {{ form.address_line2 }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Landmark</label>
+                        {{ form.landmark }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">City *</label>
+                        {{ form.city }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">State *</label>
+                        {{ form.state }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Pincode *</label>
+                        {{ form.pincode }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Address Type</label>
+                        {{ form.address_type }}
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center mt-4">
+                        <div class="form-check">
+                            {{ form.is_default }}
+                            <label class="form-check-label small" for="{{ form.is_default.id_for_label }}">Make this my default address</label>
+                        </div>
+                    </div>
+                    <div class="col-12 mt-3 d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light border" data-bs-toggle="collapse" data-bs-target="#addNewAddressBox">Cancel</button>
+                        <button type="submit" class="btn btn-primary px-4 fw-bold">Save Address</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Addresses Grid -->
+    <div class="row g-3">
+        {% for addr in addresses %}
+        <div class="col-md-6">
+            <div class="card h-100 p-4 border rounded-4 bg-white shadow-sm position-relative">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <strong class="fs-6 text-dark">{{ addr.full_name }}</strong>
+                        <span class="badge bg-secondary-subtle text-secondary small">{{ addr.get_address_type_display }}</span>
+                    </div>
+                    {% if addr.is_default %}
+                    <span class="badge bg-success-subtle text-success fw-bold">DEFAULT</span>
+                    {% endif %}
+                </div>
+
+                <p class="small text-muted mb-3">
+                    {{ addr.address_line1 }}<br>
+                    {% if addr.address_line2 %}{{ addr.address_line2 }}<br>{% endif %}
+                    {% if addr.landmark %}Near {{ addr.landmark }}<br>{% endif %}
+                    {{ addr.city }}, {{ addr.state }} - <strong>{{ addr.pincode }}</strong>
+                </p>
+
+                <div class="small text-muted mb-3">
+                    <span class="material-symbols-outlined fs-6 align-middle">call</span> Phone: {{ addr.phone }}
+                </div>
+
+                <div class="mt-auto pt-3 border-top d-flex gap-2">
+                    <a href="{% url 'address_edit' pk=addr.id %}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 fw-semibold">
+                        <span class="material-symbols-outlined fs-6">edit</span> Edit Address
+                    </a>
+                    <form action="{% url 'address_delete' pk=addr.id %}" method="post" onsubmit="return confirm('Are you sure you want to delete this delivery address?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1">
+                            <span class="material-symbols-outlined fs-6">delete</span> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card border rounded-4 p-5 text-center bg-white shadow-sm">
+                <span class="material-symbols-outlined fs-1 text-muted mb-2">location_off</span>
+                <h5 class="fw-bold">No Saved Addresses</h5>
+                <p class="text-muted small">You haven't saved any delivery addresses yet.</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

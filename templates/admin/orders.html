@@ -1,0 +1,317 @@
+{% extends 'admin/base_admin.html' %}
+{% load humanize %}
+
+{% block title %}Manage Orders & Logistics - Tech Mart Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">Customer Orders & Logistics ({{ orders.count }})</h3>
+        <p class="text-muted small mb-0">Track shipments, update dispatch milestones, manage courier partners and delivery PINs</p>
+    </div>
+</div>
+
+<!-- Search & Status Filter Toolbar -->
+<div class="card border rounded-4 p-3 shadow-sm bg-white mb-4">
+    <form method="get" action="{% url 'admin_orders' %}" class="row g-2 align-items-center">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                    <span class="material-symbols-outlined fs-5 text-muted">search</span>
+                </span>
+                <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Search by Order ID (#TM-...), Customer Name, or City..." value="{{ search_q }}">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="status" class="form-select" onchange="this.form.submit()">
+                <option value="">All Fulfillment Statuses</option>
+                {% for code, label in STATUS_CHOICES %}
+                <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1 fw-semibold">Filter</button>
+            {% if search_q or status_filter %}
+            <a href="{% url 'admin_orders' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Orders Table -->
+<style>
+.admin-orders-scroll-container {
+    min-height: 480px;
+    max-height: 600px;
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    scrollbar-width: thin;
+    scrollbar-color: #1e463a #f1f5f9;
+    -webkit-overflow-scrolling: touch;
+    border-bottom: 2px solid #e2e8f0;
+}
+.admin-orders-scroll-container::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+.admin-orders-scroll-container::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+.admin-orders-scroll-container::-webkit-scrollbar-thumb {
+    background: #1e463a;
+    border-radius: 6px;
+    border: 2px solid #f8fafc;
+}
+.admin-orders-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #15372d;
+}
+.admin-orders-scroll-container thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background-color: #f8fafc !important;
+    box-shadow: inset 0 -1px 0 #e2e8f0;
+    white-space: nowrap;
+}
+.scroll-ctrl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #334155;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 50rem;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.15s ease-in-out;
+    white-space: nowrap;
+    text-decoration: none;
+    width: auto !important;
+    height: auto !important;
+}
+.scroll-ctrl-btn:hover {
+    background: #1e463a !important;
+    color: #ffffff !important;
+    border-color: #1e463a !important;
+}
+.scroll-ctrl-btn:hover .material-symbols-outlined {
+    color: #ffffff !important;
+}
+</style>
+
+<div class="card border rounded-4 shadow-sm bg-white overflow-hidden">
+    <!-- Header with Scrollable Controls & Bulk Delete -->
+    <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="material-symbols-outlined text-primary fs-5">receipt_long</span>
+            <h6 class="fw-bold mb-0">Customer Orders</h6>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill d-inline-flex align-items-center gap-1 small fw-semibold" style="font-size: 0.72rem;">
+                <span class="material-symbols-outlined fs-6">unfold_more</span> Scrollable
+            </span>
+            <!-- Bulk Delete Button (appears on selection) -->
+            <button type="button" id="btnBulkDeleteOrders" class="btn btn-danger btn-sm px-2.5 py-1 fw-semibold d-none align-items-center gap-1 shadow-sm" onclick="submitBulkDeleteOrders()">
+                <span class="material-symbols-outlined" style="font-size: 1rem;">delete_sweep</span>
+                <span>Delete Selected (<span id="selectedOrderCountBadge">0</span>)</span>
+            </button>
+            <form id="bulkDeleteOrdersForm" action="{% url 'admin_order_bulk_delete' %}" method="post" style="display: none;">
+                {% csrf_token %}
+            </form>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <!-- Quick Scroll Navigation Controls (Left & Right Only) -->
+            <div class="scroll-pill-group" title="Scroll horizontally">
+                <span class="text-muted small fw-bold px-1" style="font-size: 0.72rem;">Scroll:</span>
+                <button type="button" class="scroll-pill-btn" onclick="document.getElementById('adminOrdersScrollContainer').scrollBy({left: -220, behavior: 'smooth'})" title="Scroll Left">
+                    <span class="material-symbols-outlined">chevron_left</span> <span class="small fw-semibold">Left</span>
+                </button>
+                <button type="button" class="scroll-pill-btn" onclick="document.getElementById('adminOrdersScrollContainer').scrollBy({left: 220, behavior: 'smooth'})" title="Scroll Right">
+                    <span class="small fw-semibold">Right</span> <span class="material-symbols-outlined">chevron_right</span>
+                </button>
+            </div>
+            <span class="text-muted small">Showing {{ orders.count }} order{{ orders.count|pluralize }}</span>
+        </div>
+    </div>
+
+    <div class="table-responsive admin-orders-scroll-container" id="adminOrdersScrollContainer">
+        <table class="table align-middle table-hover mb-0" style="min-width: 1220px;">
+            <thead class="table-light small text-uppercase text-muted">
+                <tr>
+                    <th style="width: 3%; min-width: 44px;" class="ps-3">
+                        <input type="checkbox" id="selectAllOrdersCheckbox" class="form-check-input" title="Select All Orders">
+                    </th>
+                    <th style="min-width: 170px;">Order ID</th>
+                    <th style="min-width: 220px;">Customer & City</th>
+                    <th style="min-width: 140px;">Amount (₹)</th>
+                    <th style="min-width: 170px;">Payment</th>
+                    <th style="min-width: 180px;">Fulfillment Status</th>
+                    <th style="min-width: 130px;">Delivery PIN</th>
+                    <th style="min-width: 140px;" class="text-end pe-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="small">
+                {% for order in orders %}
+                <tr>
+                    <td class="ps-3">
+                        <input type="checkbox" class="form-check-input order-item-cb" value="{{ order.order_number }}" data-order="{{ order.order_number }}">
+                    </td>
+                    <td>
+                        <strong class="font-heading text-primary">#{{ order.order_number }}</strong>
+                        <div class="text-muted" style="font-size: 0.72rem;">{{ order.created_at|date:"d M Y, h:i A" }}</div>
+                    </td>
+                    <td>
+                        <strong>{{ order.shipping_name }}</strong>
+                        <div class="text-muted">{{ order.shipping_city }} ({{ order.shipping_pincode }})</div>
+                    </td>
+                    <td>
+                        <div class="fw-bold font-heading">₹{{ order.total_amount|intcomma }}</div>
+                        <small class="text-muted">{{ order.items.count }} item{{ order.items.count|pluralize }}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ order.get_payment_method_display }}</span>
+                        <div>
+                            <span class="badge {% if order.payment_status == 'PAID' %}bg-success-subtle text-success{% else %}bg-warning-subtle text-warning-emphasis{% endif %}" style="font-size: 0.68rem;">
+                                {{ order.get_payment_status_display }}
+                            </span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge {% if order.order_status == 'DELIVERED' %}bg-success text-white{% elif order.order_status == 'CANCELLED' %}bg-danger text-white{% elif order.order_status == 'IN_TRANSIT' %}bg-primary text-white{% elif order.order_status == 'OUT_FOR_DELIVERY' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} fw-semibold">
+                            {{ order.get_order_status_display }}
+                        </span>
+                        <div class="text-muted mt-1" style="font-size: 0.7rem;">{{ order.courier_name }}</div>
+                        {% if order.delivery_partner %}
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle d-inline-flex align-items-center gap-1 mt-1" style="font-size: 0.68rem;">
+                            <span class="material-symbols-outlined" style="font-size: 11px;">two_wheeler</span>
+                            {{ order.delivery_partner.first_name|default:order.delivery_partner.username }}
+                        </span>
+                        {% else %}
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle d-inline-flex align-items-center gap-1 mt-1" style="font-size: 0.68rem;">
+                            <span class="material-symbols-outlined" style="font-size: 11px;">person_alert</span>
+                            Unassigned
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border font-monospace fw-bold fs-6">{{ order.delivery_pin }}</span>
+                    </td>
+                    <td class="text-end pe-3">
+                        <div class="d-inline-flex align-items-center gap-1 justify-content-end">
+                            <a href="{% url 'admin_order_detail' order_number=order.order_number %}" class="btn btn-primary btn-sm py-1 px-2 fw-semibold">
+                                Manage Order
+                            </a>
+                            <form action="{% url 'admin_order_delete' order_number=order.order_number %}" method="post" class="d-inline" onsubmit="return confirm('Delete order #{{ order.order_number }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm p-1" title="Delete Order">
+                                    <span class="material-symbols-outlined fs-6 align-middle">delete</span>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted" style="height: 380px; vertical-align: middle;">
+                        <span class="material-symbols-outlined fs-1 text-secondary mb-2 d-block">receipt_long</span>
+                        <div class="fs-6 fw-semibold text-dark">No orders match the search criteria.</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <!-- Scroll Indicator Footer Bar -->
+    <div class="px-3 py-2 bg-light border-top d-flex justify-content-between align-items-center small text-muted" style="font-size: 0.75rem;">
+        <span class="d-flex align-items-center gap-1">
+            <span class="material-symbols-outlined" style="font-size: 0.95rem; color: #1e463a;">swap_horiz</span>
+            <span>Scroll horizontally or use buttons to view all columns</span>
+        </span>
+        <div class="d-flex align-items-center gap-2">
+            <div class="scroll-pill-group" title="Scroll horizontally">
+                <button type="button" class="scroll-pill-btn" onclick="document.getElementById('adminOrdersScrollContainer').scrollBy({left: -220, behavior: 'smooth'})" title="Scroll Left">
+                    <span class="material-symbols-outlined">chevron_left</span> <span class="small fw-semibold">Left</span>
+                </button>
+                <button type="button" class="scroll-pill-btn" onclick="document.getElementById('adminOrdersScrollContainer').scrollBy({left: 220, behavior: 'smooth'})" title="Scroll Right">
+                    <span class="small fw-semibold">Right</span> <span class="material-symbols-outlined">chevron_right</span>
+                </button>
+            </div>
+            <span>{{ orders.count }} Total Orders</span>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectAll = document.getElementById('selectAllOrdersCheckbox');
+    const itemCheckboxes = document.querySelectorAll('.order-item-cb');
+    const bulkDeleteBtn = document.getElementById('btnBulkDeleteOrders');
+    const selectedBadge = document.getElementById('selectedOrderCountBadge');
+    const bulkForm = document.getElementById('bulkDeleteOrdersForm');
+
+    function updateBulkState() {
+        const checked = document.querySelectorAll('.order-item-cb:checked');
+        const count = checked.length;
+        if (selectedBadge) selectedBadge.textContent = count;
+        if (bulkDeleteBtn) {
+            if (count > 0) {
+                bulkDeleteBtn.classList.remove('d-none');
+                bulkDeleteBtn.classList.add('d-inline-flex');
+            } else {
+                bulkDeleteBtn.classList.add('d-none');
+                bulkDeleteBtn.classList.remove('d-inline-flex');
+            }
+        }
+        if (selectAll) {
+            if (itemCheckboxes.length > 0 && count === itemCheckboxes.length) {
+                selectAll.checked = true;
+                selectAll.indeterminate = false;
+            } else if (count > 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = true;
+            } else {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            }
+        }
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            itemCheckboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateBulkState();
+        });
+    }
+
+    itemCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateBulkState);
+    });
+
+    window.submitBulkDeleteOrders = function () {
+        const checked = document.querySelectorAll('.order-item-cb:checked');
+        if (checked.length === 0) {
+            alert('Please select at least one order to delete.');
+            return;
+        }
+        if (!confirm('Are you sure you want to permanently delete ' + checked.length + ' selected order(s)?\n\nThis cannot be undone.')) {
+            return;
+        }
+        bulkForm.querySelectorAll('input[name="order_numbers"]').forEach(el => el.remove());
+        checked.forEach(cb => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'order_numbers';
+            input.value = cb.value;
+            bulkForm.appendChild(input);
+        });
+        bulkForm.submit();
+    };
+});
+</script>
+{% endblock %}

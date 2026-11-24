@@ -1,0 +1,125 @@
+{% extends 'admin/base_admin.html' %}
+{% load humanize %}
+
+{% block title %}Broadcast Instructions & Multi-Role Announcements - Tech Mart Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h3 class="fw-bold mb-1 d-flex align-items-center gap-2">
+            <span class="material-symbols-outlined text-primary fs-3">campaign</span>
+            <span>Broadcast Instructions across All Roles</span>
+        </h3>
+        <p class="text-muted small mb-0">Send instant announcements, urgent logistics notices, or directives to
+            Customers, Sellers, Delivery Partners, or Admins.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'notifications_list' %}"
+            class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 rounded-pill px-3">
+            <span class="material-symbols-outlined fs-6">notifications</span>
+            <span>Admin Notification Inbox</span>
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center g-4 mb-4">
+    <!-- Broadcast Form Column -->
+    <div class="col-lg-9 col-xl-8">
+        <div class="card border rounded-4 p-4 shadow-sm bg-white">
+            <h5 class="fw-bold mb-3 border-bottom pb-2 d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined text-primary fs-5">send</span>
+                <span>Compose New Role Instruction</span>
+            </h5>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Target Audience (Role or Account) *</label>
+                    <select name="target" class="form-select" required>
+                        <option value="all_roles" selected>🌐 All Registered Users (All Roles: {{ total_users_count }} Total Accounts)</option>
+                        <option value="customers_all">🛒 All Customer Accounts ({{ customers.count }} Customers)</option>
+                        <option value="sellers_all">🏪 All Verified Sellers ({{ sellers.count }} Stores)</option>
+                        <option value="delivery_all">🛵 All Delivery Partners ({{ delivery_partners.count }} Drivers)</option>
+                        <option value="admins_all">🛡️ All Store Administrators ({{ admins.count }} Admins)</option>
+
+                        {% if sellers %}
+                        <optgroup label="Direct to Specific Seller Store">
+                            {% for sel in sellers %}
+                            <option value="user_{{ sel.pk }}">🏪 {{ sel.display_store_name }} (@{{ sel.username }})</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+
+                        {% if delivery_partners %}
+                        <optgroup label="Direct to Specific Delivery Partner">
+                            {% for dp in delivery_partners %}
+                            <option value="user_{{ dp.pk }}">🛵 {{ dp.get_full_name|default:dp.username }} ({{ dp.vehicle_number|default:dp.vehicle_type }})</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+
+                        {% if customers %}
+                        <optgroup label="Direct to Specific Customer Account">
+                            {% for cust in customers %}
+                            <option value="user_{{ cust.pk }}">🛒 {{ cust.get_full_name|default:cust.username }} ({{ cust.phone|default:cust.email|default:"Customer" }})</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+
+                        {% if admins %}
+                        <optgroup label="Direct to Specific Administrator">
+                            {% for adm in admins %}
+                            <option value="user_{{ adm.pk }}">🛡️ {{ adm.get_full_name|default:adm.username }} (@{{ adm.username }})</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+                    </select>
+                    <small class="text-muted">Choose whether to dispatch storewide to all roles, to a specific role group, or to an individual user.</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Instruction Title / Headline *</label>
+                    <input type="text" name="title" class="form-control"
+                        placeholder="e.g. Mandatory Delivery OTP Verification Notice" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Instruction Content / Directives *</label>
+                    <textarea name="message" class="form-control" rows="5"
+                        placeholder="Type your detailed instruction or operational directives here..."
+                        required></textarea>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Icon Symbol</label>
+                        <select name="icon" class="form-select">
+                            <option value="campaign" selected>📢 Campaign / Announcement</option>
+                            <option value="info">ℹ️ General Notice</option>
+                            <option value="two_wheeler">🛵 Delivery Fleet Directive</option>
+                            <option value="storefront">🏪 Seller Store Directive</option>
+                            <option value="local_shipping">🚚 Logistics & Dispatch</option>
+                            <option value="verified">✅ Policy & Verification</option>
+                            <option value="warning">⚠️ Urgent Advisory</option>
+                            <option value="support_agent">🎧 Store Operations Support</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Action Destination Link (Optional)</label>
+                        <input type="text" name="link_url" class="form-control"
+                            placeholder="Leave empty for auto-route per role">
+                    </div>
+                </div>
+
+                <div class="pt-3 border-top d-flex justify-content-end">
+                    <button type="submit"
+                        class="btn btn-primary px-4 fw-bold d-flex align-items-center gap-2 shadow-sm rounded-3">
+                        <span class="material-symbols-outlined fs-5">send</span>
+                        <span>Dispatch Instruction Now</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

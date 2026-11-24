@@ -1,0 +1,139 @@
+{% extends 'seller/base_seller.html' %}
+
+{% block title %}{{ action_title }} - Tech Mart Seller{% endblock %}
+
+{% block seller_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <div>
+                <h3 class="fw-bold mb-1">{{ action_title }}</h3>
+                <p class="text-muted small mb-0">Products added here are connected exclusively to your store and will display on TechMart customer storefront.</p>
+            </div>
+            <a href="{% url 'seller_products' %}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+                <span class="material-symbols-outlined fs-6">arrow_back</span>
+                <span>Back to My Products</span>
+            </a>
+        </div>
+
+        <div class="card border rounded-4 p-4 shadow-sm bg-white mb-5">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                {% if form.errors %}
+                <div class="alert alert-danger py-2 small mb-4">
+                    <strong>Please correct the following errors:</strong>
+                    {{ form.errors }}
+                </div>
+                {% endif %}
+
+                <div class="row g-3">
+                    <!-- Category & Brand -->
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-semibold mb-0">Category *</label>
+                            <a href="{% url 'seller_categories' %}" target="_blank" class="text-success small fw-semibold text-decoration-none d-flex align-items-center gap-0.5" style="font-size: 0.72rem;">
+                                <span class="material-symbols-outlined" style="font-size: 0.85rem;">add_circle</span>
+                                <span>New Category</span>
+                            </a>
+                        </div>
+                        {{ form.category }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Brand * (e.g. Apple, Sony, Samsung, Asus)</label>
+                        {{ form.brand }}
+                    </div>
+
+                    <!-- Product Name & Model -->
+                    <div class="col-md-8">
+                        <label class="form-label small fw-semibold">Product Name *</label>
+                        {{ form.name }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Model Number</label>
+                        {{ form.model_number }}
+                    </div>
+
+                    <!-- Pricing & Stock -->
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Selling Price in ₹ *</label>
+                        {{ form.price }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">MRP (Maximum Retail Price) in ₹ *</label>
+                        {{ form.mrp }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Available Stock Units *</label>
+                        {{ form.stock }}
+                    </div>
+
+                    <!-- Image URL or Upload -->
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Direct Image URL (External CDN)</label>
+                        {{ form.image_url }}
+                        <small class="text-muted d-block" style="font-size: 0.72rem;">e.g. Unsplash, manufacturer CDN, or image host URL</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Or Upload Product Image</label>
+                        {{ form.image }}
+                        {% if is_edit and product.image %}
+                        <small class="text-muted d-block" style="font-size: 0.72rem;">Current: {{ product.image.name }}</small>
+                        {% endif %}
+                    </div>
+
+                    <!-- Warranty Info & Deal Tag -->
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Warranty Details</label>
+                        {{ form.warranty_info }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Promotional Deal Tag (Optional)</label>
+                        {{ form.deal_tag }}
+                    </div>
+
+                    <!-- Key Technical Specifications -->
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">Key Technical Specifications (One feature per line)</label>
+                        {{ form.specs }}
+                        <small class="text-muted d-block" style="font-size: 0.72rem;">Example: 16GB Unified RAM, 512GB NVMe SSD, 120Hz Retina Display</small>
+                    </div>
+
+                    <!-- Full Description -->
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold">Full Product Description</label>
+                        {{ form.description }}
+                    </div>
+
+                    <!-- Checkboxes: Featured & Deal -->
+                    <div class="col-12">
+                        <div class="p-3 bg-light rounded-3 d-flex gap-4">
+                            <div class="form-check">
+                                {{ form.is_featured }}
+                                <label class="form-check-label small fw-semibold" for="{{ form.is_featured.id_for_label }}">
+                                    Highlight on Storefront (Featured Product)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                {{ form.is_deal }}
+                                <label class="form-check-label small fw-semibold" for="{{ form.is_deal.id_for_label }}">
+                                    Mark as Deal of the Day
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="col-12 d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a href="{% url 'seller_products' %}" class="btn btn-light border px-4">Cancel</a>
+                        <button type="submit" class="btn btn-success fw-bold px-4 shadow-sm">
+                            <span class="material-symbols-outlined fs-5 align-middle me-1">save</span>
+                            {% if is_edit %}Save Changes{% else %}Publish Product{% endif %}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

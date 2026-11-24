@@ -1,0 +1,388 @@
+{% extends 'seller/base_seller.html' %}
+{% load humanize %}
+
+{% block title %}Seller Dashboard - {{ user.display_store_name }} - Tech Mart{% endblock %}
+
+{% block seller_content %}
+<style>
+.seller-dashboard-orders-scroll {
+    min-height: 380px;
+    max-height: 500px;
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    scrollbar-width: thin;
+    scrollbar-color: #059669 #f1f5f9;
+    -webkit-overflow-scrolling: touch;
+    border-bottom: 2px solid #e2e8f0;
+}
+.seller-dashboard-orders-scroll::-webkit-scrollbar {
+    width: 12px; /* Prominent top-to-bottom vertical scrollbar */
+    height: 12px; /* Prominent horizontal scrollbar */
+}
+.seller-dashboard-orders-scroll::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+.seller-dashboard-orders-scroll::-webkit-scrollbar-thumb {
+    background: #059669;
+    border-radius: 6px;
+    border: 2px solid #f8fafc;
+}
+.seller-dashboard-orders-scroll::-webkit-scrollbar-thumb:hover {
+    background: #047857;
+}
+.seller-dashboard-orders-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background-color: #f8fafc !important;
+    box-shadow: inset 0 -1px 0 #e2e8f0;
+    white-space: nowrap;
+}
+</style>
+<!-- Welcome Banner -->
+<div class="card border-0 rounded-4 shadow-sm mb-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #064e3b 0%, #059669 100%);">
+    <div class="p-4 p-md-5">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <span class="badge bg-white text-success fw-bold px-3 py-1.5 mb-2" style="font-size: 0.75rem;">
+                    🏪 VERIFIED SELLER PORTAL
+                </span>
+                <h2 class="fw-bold mb-1 font-heading">{{ user.display_store_name }}</h2>
+                <p class="text-white-50 mb-0 small">
+                    Welcome back, <strong>{{ user.get_full_name|default:user.username }}</strong>! Manage your products, fulfill customer orders, and track store earnings.
+                </p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'seller_categories' %}" class="btn btn-outline-light fw-semibold d-flex align-items-center gap-1.5 px-3 py-2">
+                    <span class="material-symbols-outlined fs-5">category</span>
+                    <span>Categories</span>
+                </a>
+                <a href="{% url 'seller_product_create' %}" class="btn btn-light fw-bold text-success d-flex align-items-center gap-1.5 shadow-sm px-3.5 py-2">
+                    <span class="material-symbols-outlined fs-5">add_circle</span>
+                    <span>Add New Product</span>
+                </a>
+                <a href="{% url 'seller_profile' %}" class="btn btn-outline-light fw-semibold d-flex align-items-center gap-1.5 px-3 py-2">
+                    <span class="material-symbols-outlined fs-5">settings</span>
+                    <span>Store Profile</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4 Key Metrics Cards -->
+<div class="row g-3 mb-4">
+    <!-- Card 1: My Products -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border rounded-4 p-3 bg-white shadow-sm h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.72rem;">My Listed Products</span>
+                <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background: #ecfdf5; color: #059669;">
+                    <span class="material-symbols-outlined fs-5">inventory_2</span>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-1 text-dark">{{ total_products }}</h3>
+            <div class="d-flex align-items-center justify-content-between text-muted small mt-1">
+                <span>{{ in_stock_count }} Active in Stock</span>
+                <a href="{% url 'seller_products' %}" class="text-success fw-semibold text-decoration-none small">View all &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 2: Stock Health -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border rounded-4 p-3 bg-white shadow-sm h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.72rem;">Stock Alerts</span>
+                {% if low_stock_count > 0 or out_of_stock_count > 0 %}
+                <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background: #fef3c7; color: #d97706;">
+                {% else %}
+                <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background: #ecfdf5; color: #059669;">
+                {% endif %}
+                    <span class="material-symbols-outlined fs-5">warning</span>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-1 text-dark">{{ low_stock_count|add:out_of_stock_count }}</h3>
+            <div class="d-flex align-items-center justify-content-between text-muted small mt-1">
+                <span>{{ low_stock_count }} Low • {{ out_of_stock_count }} Empty</span>
+                <a href="{% url 'seller_products' %}?stock=low_stock" class="text-warning-emphasis fw-semibold text-decoration-none small">Restock &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 3: My Orders -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border rounded-4 p-3 bg-white shadow-sm h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.72rem;">Customer Orders</span>
+                <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background: #eff6ff; color: #2563eb;">
+                    <span class="material-symbols-outlined fs-5">shopping_cart</span>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-1 text-dark">{{ total_orders_count }}</h3>
+            <div class="d-flex align-items-center justify-content-between text-muted small mt-1">
+                <span>With your products</span>
+                <a href="{% url 'seller_orders' %}" class="text-primary fw-semibold text-decoration-none small">View orders &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 4: Seller Revenue -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border rounded-4 p-3 bg-white shadow-sm h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.72rem;">Paid Earnings</span>
+                <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background: #ecfdf5; color: #059669;">
+                    <span class="material-symbols-outlined fs-5">payments</span>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-1 text-success">₹{{ total_seller_revenue|intcomma }}</h3>
+            <div class="d-flex align-items-center justify-content-between text-muted small mt-1">
+                <span>Pending: ₹{{ pending_seller_revenue|intcomma }}</span>
+                <span class="badge bg-success-subtle text-success">Paid</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Recent Orders for This Seller -->
+    <div class="col-lg-8">
+        <form method="post" action="{% url 'seller_bulk_delete_orders' %}" id="recentOrdersBulkForm">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'seller_dashboard' %}">
+        <div class="card border rounded-4 shadow-sm bg-white overflow-hidden mb-4">
+            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="material-symbols-outlined text-success fs-5">receipt_long</span>
+                    <h6 class="fw-bold mb-0">Recent Customer Orders (Containing My Products)</h6>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill d-inline-flex align-items-center gap-1 small fw-semibold" style="font-size: 0.72rem;">
+                        <span class="material-symbols-outlined fs-6">swap_horiz</span> Scrollable
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <!-- Dynamic Bulk Delete Button -->
+                    <div id="bulkRecentOrdersActions" class="d-none align-items-center gap-2">
+                        <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 small fw-semibold" id="selectedRecentOrdersCount">0 Selected</span>
+                        <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1 shadow-sm" onclick="return confirm('Are you sure you want to delete all selected orders? This action cannot be undone.');">
+                            <span class="material-symbols-outlined fs-6">delete</span> Delete Selected
+                        </button>
+                    </div>
+                    <div class="scroll-pill-group" title="Scroll table (Left, Right, Top, Bottom)">
+                        <span class="text-muted small fw-bold px-1" style="font-size: 0.72rem;">Scroll:</span>
+                        <button type="button" class="scroll-pill-btn" onclick="document.getElementById('recentOrdersScrollContainer').scrollBy({left: -200, behavior: 'smooth'})" title="Scroll Left">
+                            <span class="material-symbols-outlined">chevron_left</span> <span class="small fw-semibold">Left</span>
+                        </button>
+                        <button type="button" class="scroll-pill-btn" onclick="document.getElementById('recentOrdersScrollContainer').scrollBy({left: 200, behavior: 'smooth'})" title="Scroll Right">
+                            <span class="material-symbols-outlined">chevron_right</span> <span class="small fw-semibold">Right</span>
+                        </button>
+                        <button type="button" class="scroll-pill-btn" onclick="document.getElementById('recentOrdersScrollContainer').scrollBy({top: -160, behavior: 'smooth'})" title="Scroll Up / Top">
+                            <span class="material-symbols-outlined">keyboard_arrow_up</span> <span class="small fw-semibold">Top</span>
+                        </button>
+                        <button type="button" class="scroll-pill-btn" onclick="document.getElementById('recentOrdersScrollContainer').scrollBy({top: 160, behavior: 'smooth'})" title="Scroll Down / Bottom">
+                            <span class="small fw-semibold">Bottom</span> <span class="material-symbols-outlined">keyboard_arrow_down</span>
+                        </button>
+                    </div>
+                    <a href="{% url 'seller_orders' %}" class="btn btn-sm btn-outline-secondary py-1 px-2.5 fw-semibold small">View All Orders &rarr;</a>
+                </div>
+            </div>
+            <div class="table-responsive seller-dashboard-orders-scroll" id="recentOrdersScrollContainer">
+                <table class="table align-middle table-hover mb-0" style="min-width: 860px;">
+                    <thead class="table-light small text-uppercase text-muted">
+                        <tr>
+                            <th class="ps-3 text-center" style="width: 5%; min-width: 44px;">
+                                <input type="checkbox" id="selectAllRecentOrders" class="form-check-input" style="cursor: pointer;" title="Select All Orders">
+                            </th>
+                            <th style="min-width: 130px;">Order #</th>
+                            <th style="min-width: 170px;">Customer</th>
+                            <th style="min-width: 150px;">Date</th>
+                            <th style="min-width: 120px;">Status</th>
+                            <th style="min-width: 110px;">Payment</th>
+                            <th class="text-end pe-3" style="min-width: 130px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        {% for ord in recent_orders %}
+                        <tr>
+                            <td class="ps-3 text-center">
+                                <input type="checkbox" name="order_numbers" value="{{ ord.order_number }}" class="form-check-input recent-order-check" style="cursor: pointer;">
+                            </td>
+                            <td>
+                                <a href="{% url 'seller_order_detail' order_number=ord.order_number %}" class="fw-bold text-dark text-decoration-none">
+                                    #{{ ord.order_number }}
+                                </a>
+                            </td>
+                            <td>
+                                <strong class="d-block text-dark">{{ ord.shipping_name }}</strong>
+                                <span class="text-muted" style="font-size: 0.72rem;">{{ ord.shipping_city }}</span>
+                            </td>
+                            <td>{{ ord.created_at|date:"d M Y, h:i A" }}</td>
+                            <td>
+                                <span class="badge {% if ord.order_status == 'DELIVERED' %}bg-success{% elif ord.order_status == 'CANCELLED' %}bg-danger{% else %}bg-primary{% endif %}">
+                                    {{ ord.get_order_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {% if ord.payment_status == 'PAID' %}bg-success-subtle text-success{% elif ord.payment_status == 'REFUNDED' %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning-emphasis{% endif %} fw-semibold">
+                                    {{ ord.get_payment_status_display }}
+                                </span>
+                            </td>
+                            <td class="text-end pe-3">
+                                <div class="d-inline-flex align-items-center gap-1 justify-content-end">
+                                    <a href="{% url 'seller_order_detail' order_number=ord.order_number %}" class="btn btn-sm btn-light border py-1 px-2 text-dark fw-semibold" title="View Items">
+                                        View Items
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger p-1 d-inline-flex align-items-center justify-content-center" style="width: 28px; height: 28px; border-radius: 6px;" title="Delete Order #{{ ord.order_number }}" onclick="deleteRecentOrder('{{ ord.order_number }}')">
+                                        <span class="material-symbols-outlined" style="font-size: 0.95rem;">delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted" style="height: 380px; vertical-align: middle;">
+                                <span class="material-symbols-outlined fs-2 d-block mb-1 text-muted">shopping_bag</span>
+                                No customer orders placed for your products yet.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Scroll Indicator Footer Bar -->
+            <div class="px-3 py-2 bg-light border-top d-flex justify-content-between align-items-center small text-muted" style="font-size: 0.72rem;">
+                <span class="d-flex align-items-center gap-1">
+                    <span class="material-symbols-outlined" style="font-size: 0.95rem; color: #059669;">open_with</span>
+                    <span>Scroll horizontally & vertically or use buttons to navigate</span>
+                </span>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="scroll-pill-group" title="Scroll table">
+                        <button type="button" class="scroll-pill-btn" onclick="document.getElementById('recentOrdersScrollContainer').scrollBy({left: -200, behavior: 'smooth'})" title="Scroll Left">
+                            <span class="material-symbols-outlined">chevron_left</span> <span class="small fw-semibold">Left</span>
+                        </button>
+                        <button type="button" class="scroll-pill-btn" onclick="document.getElementById('recentOrdersScrollContainer').scrollBy({left: 200, behavior: 'smooth'})" title="Scroll Right">
+                            <span class="material-symbols-outlined">chevron_right</span> <span class="small fw-semibold">Right</span>
+                        </button>
+                        <button type="button" class="scroll-pill-btn" onclick="document.getElementById('recentOrdersScrollContainer').scrollBy({top: -160, behavior: 'smooth'})" title="Scroll Up / Top">
+                            <span class="material-symbols-outlined">keyboard_arrow_up</span> <span class="small fw-semibold">Top</span>
+                        </button>
+                        <button type="button" class="scroll-pill-btn" onclick="document.getElementById('recentOrdersScrollContainer').scrollBy({top: 160, behavior: 'smooth'})" title="Scroll Down / Bottom">
+                            <span class="small fw-semibold">Bottom</span> <span class="material-symbols-outlined">keyboard_arrow_down</span>
+                        </button>
+                    </div>
+                    <span>{{ recent_orders|length }} Orders loaded</span>
+                </div>
+            </div>
+        </div>
+        </form>
+    </div>
+
+    <!-- Right Column: Low Stock Alerts & Quick Restock -->
+    <div class="col-lg-4">
+        <div class="card border rounded-4 shadow-sm bg-white overflow-hidden mb-4">
+            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined text-warning fs-5">inventory</span>
+                    <h6 class="fw-bold mb-0">Stock Alert & Quick Restock</h6>
+                </div>
+            </div>
+            <div class="p-3">
+                {% for prod in low_stock_products %}
+                <div class="p-2.5 rounded-3 border mb-2 {% if prod.stock == 0 %}bg-danger bg-opacity-10 border-danger-subtle{% else %}bg-warning bg-opacity-10 border-warning-subtle{% endif %}">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="text-truncate me-2">
+                            <strong class="d-block text-truncate text-dark small">{{ prod.name }}</strong>
+                            <small class="text-muted">₹{{ prod.price|intcomma }}</small>
+                        </div>
+                        {% if prod.stock == 0 %}
+                        <span class="badge bg-danger text-white fw-bold">Out of Stock</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark fw-bold">{{ prod.stock }} left</span>
+                        {% endif %}
+                    </div>
+                    <!-- Quick Stock Update Form -->
+                    <form action="{% url 'seller_update_stock' pk=prod.id %}" method="post" class="d-flex gap-1.5 align-items-center">
+                        {% csrf_token %}
+                        <input type="number" name="stock" class="form-control form-control-sm" value="{{ prod.stock }}" min="0" style="width: 80px;" title="Set new stock units">
+                        <button type="submit" class="btn btn-sm btn-dark px-2.5 fw-semibold d-flex align-items-center gap-1 flex-shrink-0" title="Save Stock">
+                            <span class="material-symbols-outlined fs-6">save</span>
+                            <span>Update</span>
+                        </button>
+                    </form>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted small">
+                    <span class="material-symbols-outlined fs-2 text-success d-block mb-1">check_circle</span>
+                    All your listed products have healthy inventory levels!
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Store Quick Info Card -->
+        <div class="card border rounded-4 shadow-sm bg-white p-3">
+            <h6 class="fw-bold mb-2">Seller Store Information</h6>
+            <div class="small text-muted mb-2">
+                <div>Store: <strong class="text-dark">{{ user.display_store_name }}</strong></div>
+                <div>GSTIN: <strong class="text-dark">{{ user.gst_number|default:'Not provided' }}</strong></div>
+                <div>Contact: <strong class="text-dark">{{ user.phone|default:user.email }}</strong></div>
+            </div>
+            <a href="{% url 'seller_profile' %}" class="btn btn-sm btn-outline-success fw-semibold w-100">
+                Edit Store Profile
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden Form for Single Dashboard Order Delete -->
+<form id="singleRecentOrderDeleteForm" method="post" action="" class="d-none">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'seller_dashboard' %}">
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllRecent = document.getElementById('selectAllRecentOrders');
+    const recentRowChecks = document.querySelectorAll('.recent-order-check');
+    const bulkRecentBar = document.getElementById('bulkRecentOrdersActions');
+    const selectedRecentLabel = document.getElementById('selectedRecentOrdersCount');
+
+    function updateBulkRecentState() {
+        let count = 0;
+        recentRowChecks.forEach(cb => { if (cb.checked) count++; });
+        if (count > 0) {
+            bulkRecentBar.classList.remove('d-none');
+            bulkRecentBar.classList.add('d-flex');
+            selectedRecentLabel.textContent = count + ' Selected';
+        } else {
+            bulkRecentBar.classList.add('d-none');
+            bulkRecentBar.classList.remove('d-flex');
+        }
+        if (selectAllRecent) {
+            selectAllRecent.checked = (count === recentRowChecks.length && recentRowChecks.length > 0);
+        }
+    }
+
+    if (selectAllRecent) {
+        selectAllRecent.addEventListener('change', function() {
+            recentRowChecks.forEach(cb => { cb.checked = selectAllRecent.checked; });
+            updateBulkRecentState();
+        });
+    }
+
+    recentRowChecks.forEach(cb => {
+        cb.addEventListener('change', updateBulkRecentState);
+    });
+});
+
+function deleteRecentOrder(orderNumber) {
+    if (confirm('Are you sure you want to delete order #' + orderNumber + '? This action cannot be undone.')) {
+        const form = document.getElementById('singleRecentOrderDeleteForm');
+        form.action = '/seller-dashboard/orders/' + encodeURIComponent(orderNumber) + '/delete/';
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

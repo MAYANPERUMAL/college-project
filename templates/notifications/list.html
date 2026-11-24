@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Notifications & Alerts - TechMart{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Notification Filter Pills */
+    .notif-filter-btn {
+        font-size: 0.78rem;
+        border-radius: 50rem;
+        font-weight: 600;
+        padding: 0.35rem 0.85rem;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .notif-filter-active {
+        background: #1e463a !important;
+        border: 1px solid #1e463a !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 6px rgba(30, 70, 58, 0.2);
+    }
+    .notif-filter-inactive {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+    }
+    .notif-filter-inactive:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+    }
+
+    /* Notification Icon Type Bubbles */
+    .notif-icon-bubble {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .notif-bubble-order {
+        background: #eaf3ee;
+        color: #1e463a;
+        border: 1px solid rgba(30, 70, 58, 0.15);
+    }
+    .notif-bubble-status {
+        background: #e0f2fe;
+        color: #0284c7;
+        border: 1px solid rgba(2, 132, 199, 0.18);
+    }
+    .notif-bubble-instruction {
+        background: #fef3c7;
+        color: #b45309;
+        border: 1px solid rgba(180, 83, 9, 0.18);
+    }
+    .notif-bubble-registration {
+        background: #f3e8ff;
+        color: #7c3aed;
+        border: 1px solid rgba(124, 58, 237, 0.18);
+    }
+    .notif-bubble-default {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb small">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-decoration-none text-muted">Home</a></li>
+                    {% if is_seller_view %}
+                    <li class="breadcrumb-item"><a href="{% url 'seller_dashboard' %}" class="text-decoration-none text-success fw-semibold">Seller Portal</a></li>
+                    {% endif %}
+                    <li class="breadcrumb-item active text-dark" aria-current="page">Notifications & Alerts</li>
+                </ol>
+            </nav>
+
+            <!-- Centered Header Card -->
+            <div class="card border rounded-4 p-4 shadow-sm bg-white mb-4" style="border-color: #e2e8f0 !important;">
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center text-white flex-shrink-0 shadow-sm" style="width: 44px; height: 44px; background: #1e463a;">
+                            <span class="material-symbols-outlined fs-4" style="color: #f5d58f;">notifications</span>
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <h4 class="fw-bold text-dark mb-0" style="letter-spacing: -0.01em;">Notifications & Alerts</h4>
+                                {% if unread_count > 0 %}
+                                <span class="badge rounded-pill fw-bold" style="background: rgba(30, 70, 58, 0.1); color: #1e463a; font-size: 0.72rem; padding: 4px 10px;">
+                                    {{ unread_count }} unread
+                                </span>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">Directives, orders, deliveries, and system announcements across roles</small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        {% if unread_count > 0 %}
+                        <form action="{% url 'notifications_mark_all_read' %}" method="post" class="m-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined fs-6">done_all</span>
+                                <span>Mark All as Read</span>
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% if user.is_admin_user %}
+                        <a href="{% url 'admin_broadcast_notification' %}" class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm text-white" style="background: #1e463a;">
+                            <span class="material-symbols-outlined fs-6" style="color: #f5d58f;">campaign</span>
+                            <span>Broadcast</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Navigation Pills (Using clean CSS classes) -->
+            <div class="d-flex flex-wrap gap-1.5 mb-3">
+                <a href="{% url 'notifications_list' %}{% if role_view %}?role={{ role_view }}{% endif %}" class="btn notif-filter-btn {% if filter_type == 'all' %}notif-filter-active{% else %}notif-filter-inactive{% endif %}">
+                    All ({{ total_count }})
+                </a>
+                <a href="{% url 'notifications_list' %}?filter=unread{% if role_view %}&role={{ role_view }}{% endif %}" class="btn notif-filter-btn {% if filter_type == 'unread' %}notif-filter-active{% else %}notif-filter-inactive{% endif %}">
+                    Unread ({{ unread_count }})
+                </a>
+                <a href="{% url 'notifications_list' %}?filter=instructions{% if role_view %}&role={{ role_view }}{% endif %}" class="btn notif-filter-btn {% if filter_type == 'instructions' %}notif-filter-active{% else %}notif-filter-inactive{% endif %}">
+                    📢 Role Instructions
+                </a>
+                <a href="{% url 'notifications_list' %}?filter=orders{% if role_view %}&role={{ role_view }}{% endif %}" class="btn notif-filter-btn {% if filter_type == 'orders' %}notif-filter-active{% else %}notif-filter-inactive{% endif %}">
+                    📦 Orders & Logistics
+                </a>
+                <a href="{% url 'notifications_list' %}?filter=account{% if role_view %}&role={{ role_view }}{% endif %}" class="btn notif-filter-btn {% if filter_type == 'account' %}notif-filter-active{% else %}notif-filter-inactive{% endif %}">
+                    🔒 Account & Security
+                </a>
+            </div>
+
+            <!-- Notifications Feed Card with Select & Bulk Delete -->
+            <form id="notifBulkDeleteForm" method="post" action="{% url 'notifications_bulk_delete' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+                <div class="card border rounded-4 shadow-sm bg-white overflow-hidden mb-4" style="border-color: #e2e8f0 !important;">
+                    {% if notifications %}
+                    <!-- Bulk Action Toolbar -->
+                    <div class="p-3 bg-light border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="form-check mb-0">
+                                <input type="checkbox" class="form-check-input" id="selectAllNotifs">
+                                <label class="form-check-label small fw-semibold text-dark" for="selectAllNotifs">
+                                    Select All
+                                </label>
+                            </div>
+                            <span class="text-muted small">|</span>
+                            <span class="small text-muted" id="selectedNotifsText">0 selected</span>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="submit" name="action" value="delete_selected" class="btn btn-sm btn-danger rounded-pill px-3 py-1 fw-bold d-inline-flex align-items-center gap-1 shadow-sm d-none" id="btnDeleteSelected">
+                                <span class="material-symbols-outlined fs-6">delete</span>
+                                <span>Delete Selected</span>
+                            </button>
+
+                            <button type="submit" name="action" value="clear_read" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 small" onclick="return confirm('Delete all read notifications?');">
+                                Clear Read
+                            </button>
+
+                            <button type="submit" name="action" value="clear_all" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-1 small" onclick="return confirm('Are you sure you want to delete ALL notifications from your inbox?');">
+                                Delete All
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="list-group list-group-flush">
+                        {% for notif in notifications %}
+                        <div class="list-group-item p-3 p-md-3.5 {% if not notif.is_read %}bg-light bg-opacity-50 border-start border-3 border-success{% endif %}" style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;">
+                            <div class="d-flex align-items-start gap-3">
+                                <!-- Checkbox -->
+                                <div class="pt-1">
+                                    <input type="checkbox" name="notification_ids" value="{{ notif.pk }}" class="form-check-input notif-item-check">
+                                </div>
+
+                                <!-- Icon Bubble -->
+                                <div class="notif-icon-bubble {% if notif.notification_type == 'ORDER' %}notif-bubble-order{% elif notif.notification_type == 'STATUS_UPDATE' %}notif-bubble-status{% elif notif.notification_type == 'INSTRUCTION' %}notif-bubble-instruction{% elif notif.notification_type == 'REGISTRATION' %}notif-bubble-registration{% else %}notif-bubble-default{% endif %}">
+                                    <span class="material-symbols-outlined fs-5">{{ notif.icon|default:'notifications' }}</span>
+                                </div>
+
+                                <!-- Content -->
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-1 mb-1">
+                                        <div class="d-flex align-items-center gap-1.5 text-truncate">
+                                            <span class="fw-bold text-dark lh-sm" style="font-size: 0.9rem;">{{ notif.title }}</span>
+                                            {% if not notif.is_read %}
+                                            <span class="badge rounded-pill" style="background: rgba(30, 70, 58, 0.12); color: #1e463a; font-size: 0.62rem; font-weight: 700;">NEW</span>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted" style="font-size: 0.72rem;">
+                                            {{ notif.created_at|naturaltime }}
+                                        </small>
+                                    </div>
+                                    <p class="text-secondary small mb-2 lh-sm" style="font-size: 0.8rem;">
+                                        {{ notif.message }}
+                                    </p>
+
+                                    <!-- Action Buttons -->
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            {% if notif.link_url %}
+                                            <a href="{% url 'notification_mark_read' pk=notif.pk %}" class="btn btn-sm btn-light border py-1 px-2.5 rounded-pill fw-semibold d-inline-flex align-items-center gap-1" style="font-size: 0.75rem; color: #1e463a;">
+                                                <span>Open Details</span>
+                                                <span class="material-symbols-outlined fs-6">arrow_forward</span>
+                                            </a>
+                                            {% endif %}
+                                            {% if not notif.is_read %}
+                                            <a href="{% url 'notification_mark_read' pk=notif.pk %}" class="text-muted small text-decoration-none" style="font-size: 0.75rem;">
+                                                Mark as Read
+                                            </a>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Single Delete Form Button -->
+                                        <button type="submit" form="singleDelForm_{{ notif.pk }}" class="btn btn-sm btn-light text-muted border p-1 rounded-circle" title="Delete notification" onclick="return confirm('Delete this notification?');">
+                                            <span class="material-symbols-outlined fs-6 text-danger">delete</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-5 text-center text-muted">
+                        <span class="material-symbols-outlined fs-1 text-secondary mb-2" style="opacity: 0.5;">notifications_off</span>
+                        <h6 class="fw-bold mb-1 text-dark">No Notifications Found</h6>
+                        <small class="text-muted">You're all caught up! New order alerts, instructions, and updates will appear here.</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </form>
+
+            <!-- Hidden Individual Delete Forms -->
+            {% if notifications %}
+                {% for notif in notifications %}
+                <form id="singleDelForm_{{ notif.pk }}" method="post" action="{% url 'notification_delete' pk=notif.pk %}" class="d-none">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                </form>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.getElementById('selectAllNotifs');
+    const checkboxes = document.querySelectorAll('.notif-item-check');
+    const deleteBtn = document.getElementById('btnDeleteSelected');
+    const selectedText = document.getElementById('selectedNotifsText');
+
+    function updateSelection() {
+        let count = 0;
+        checkboxes.forEach(cb => {
+            if (cb.checked) count++;
+        });
+
+        if (selectedText) {
+            selectedText.textContent = count + ' selected';
+        }
+
+        if (deleteBtn) {
+            if (count > 0) {
+                deleteBtn.classList.remove('d-none');
+                deleteBtn.innerHTML = '<span class="material-symbols-outlined fs-6">delete</span> Delete (' + count + ')';
+            } else {
+                deleteBtn.classList.add('d-none');
+            }
+        }
+
+        if (selectAll && checkboxes.length > 0) {
+            selectAll.checked = (count === checkboxes.length);
+        }
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            checkboxes.forEach(cb => {
+                cb.checked = selectAll.checked;
+            });
+            updateSelection();
+        });
+    }
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateSelection);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Order Confirmed - Tech Mart{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border rounded-4 p-4 p-md-5 bg-white shadow-sm text-center">
+                <div class="rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 76px; height: 76px;">
+                    <span class="material-symbols-outlined fs-1">verified</span>
+                </div>
+                <span class="badge bg-success-subtle text-success fw-bold px-3 py-1 rounded-pill mx-auto mb-2">
+                    Payment Verified ({{ order.get_payment_method_display }})
+                </span>
+                <h2 class="fw-extrabold text-dark mb-1">Thank You! Your Order is Confirmed</h2>
+                <p class="text-muted mb-4">
+                    Order ID: <strong class="text-primary font-heading">#{{ order.order_number }}</strong>
+                </p>
+
+                <!-- Secure Handover Delivery PIN Box -->
+                <div class="tm-pin-card max-w-sm mx-auto mb-4 p-3 bg-light rounded-4 border">
+                    <span class="small text-uppercase text-muted fw-bold d-block mb-1">Your Doorstep Delivery PIN</span>
+                    <div class="d-flex justify-content-center gap-2 my-2">
+                        {% for digit in order.delivery_pin %}
+                        <span class="tm-pin-digit">{{ digit }}</span>
+                        {% endfor %}
+                    </div>
+                    <small class="text-muted d-block">
+                        <span class="material-symbols-outlined fs-6 align-middle text-warning-emphasis">shield</span>
+                        Share this PIN with the delivery courier only after verifying the tamper seal.
+                    </small>
+                </div>
+
+                <!-- Delivery Details Card -->
+                <div class="p-3 bg-light rounded-3 text-start mb-4 border small">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <span class="text-muted d-block">Estimated Arrival:</span>
+                            <strong class="fs-6 text-dark d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined text-success fs-5">electric_bolt</span>
+                                {{ order.estimated_delivery_text }}
+                            </strong>
+                            <div class="text-muted mt-1">Courier: {{ order.courier_name }} (AWB: {{ order.tracking_number }})</div>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="text-muted d-block">Delivering to:</span>
+                            <strong class="text-dark">{{ order.shipping_name }}</strong>
+                            <div class="text-muted">
+                                {{ order.shipping_address_line1 }}, {{ order.shipping_city }} - {{ order.shipping_pincode }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Action Buttons -->
+                <div class="d-flex flex-wrap justify-content-center gap-3">
+                    <a href="{% url 'order_detail' order_number=order.order_number %}" class="btn btn-tm-primary px-4 py-2.5 fw-semibold d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined fs-5">location_searching</span>
+                        <span>Track Live Delivery</span>
+                    </a>
+                    <a href="{% url 'order_invoice' order_number=order.order_number %}" target="_blank" class="btn btn-outline-secondary px-4 py-2.5 fw-semibold d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined fs-5">receipt_long</span>
+                        <span>View GST Tax Invoice</span>
+                    </a>
+                    <a href="{% url 'home' %}" class="btn btn-light px-4 py-2.5 fw-semibold border">
+                        Continue Shopping
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,415 @@
+{% extends 'admin/base_admin.html' %}
+{% load humanize %}
+
+{% block title %}Manage Products - Tech Mart Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">Products Catalog ({{ products.count }})</h3>
+        <p class="text-muted small mb-0">Add, edit, manage stock, and set pricing for consumer electronics</p>
+    </div>
+    <a href="{% url 'admin_product_create' %}"
+        class="btn btn-primary fw-semibold d-flex align-items-center gap-1 shadow-sm">
+        <span class="material-symbols-outlined fs-5">add</span>
+        <span>Add New Tech Product</span>
+    </a>
+</div>
+
+<!-- Search & Category Filter Toolbar -->
+<div class="card border rounded-4 p-3 shadow-sm bg-white mb-4">
+    <form method="get" action="{% url 'admin_products' %}" class="row g-2 align-items-center">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                    <span class="material-symbols-outlined fs-5 text-muted">search</span>
+                </span>
+                <input type="text" name="q" class="form-control border-start-0 ps-0"
+                    placeholder="Search product by name, brand, or model..." value="{{ query }}">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="category" class="form-select" onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                {% for c in categories %}
+                <option value="{{ c.id }}" {% if selected_cat == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1 fw-semibold">Filter</button>
+            {% if query or selected_cat %}
+            <a href="{% url 'admin_products' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Products Table -->
+<style>
+    /* Sleek Scrollable Container for Admin Products Table */
+    .admin-products-scroll-container {
+        min-height: 480px;
+        max-height: 600px;
+        overflow-y: auto !important;
+        overflow-x: auto !important;
+        scrollbar-width: thin;
+        scrollbar-color: #1e463a #f1f5f9;
+        -webkit-overflow-scrolling: touch;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .admin-products-scroll-container::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+    }
+
+    .admin-products-scroll-container::-webkit-scrollbar-track {
+        background: #f8fafc;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .admin-products-scroll-container::-webkit-scrollbar-thumb {
+        background: #1e463a;
+        border-radius: 6px;
+        border: 2px solid #f8fafc;
+    }
+
+    .admin-products-scroll-container::-webkit-scrollbar-thumb:hover {
+        background: #143329;
+    }
+
+    /* Sticky Header so column titles stay visible when scrolling down */
+    .admin-products-scroll-container thead th {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background-color: #f8fafc !important;
+        box-shadow: inset 0 -1px 0 #e2e8f0;
+        white-space: nowrap;
+    }
+
+    .scroll-ctrl-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 3px 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.2;
+        color: #334155;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 50rem;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        transition: all 0.15s ease-in-out;
+        white-space: nowrap;
+        text-decoration: none;
+        width: auto !important;
+        height: auto !important;
+    }
+
+    .scroll-ctrl-btn:hover {
+        background: #1e463a !important;
+        color: #ffffff !important;
+        border-color: #1e463a !important;
+    }
+
+    .scroll-ctrl-btn:hover .material-symbols-outlined {
+        color: #ffffff !important;
+    }
+</style>
+
+<div class="card border rounded-4 shadow-sm bg-white overflow-hidden">
+    <!-- Header with Scrollable Controls & Bulk Delete -->
+    <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="material-symbols-outlined text-primary fs-5">inventory_2</span>
+            <h6 class="fw-bold mb-0">Catalog Products</h6>
+            <span
+                class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill d-inline-flex align-items-center gap-1 small fw-semibold"
+                style="font-size: 0.72rem;">
+                <span class="material-symbols-outlined fs-6">unfold_more</span> Scrollable
+            </span>
+            <!-- Bulk Delete Button (appears on selection) -->
+            <button type="button" id="btnBulkDeleteProducts"
+                class="btn btn-danger btn-sm px-2.5 py-1 fw-semibold d-none align-items-center gap-1 shadow-sm"
+                onclick="submitBulkDeleteProducts()">
+                <span class="material-symbols-outlined" style="font-size: 1rem;">delete_sweep</span>
+                <span>Delete Selected (<span id="selectedProductCountBadge">0</span>)</span>
+            </button>
+            <form id="bulkDeleteProductsForm" action="{% url 'admin_product_bulk_delete' %}" method="post"
+                style="display: none;">
+                {% csrf_token %}
+            </form>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <!-- Quick Scroll Navigation Controls (4-Way: Left, Right, Top, Bottom) -->
+            <div class="scroll-pill-group" title="Scroll table (Left, Right, Top, Bottom)">
+                <span class="text-muted small fw-bold px-1" style="font-size: 0.72rem;">Scroll:</span>
+                <button type="button" class="scroll-pill-btn"
+                    onclick="document.getElementById('adminProductsScrollContainer').scrollBy({left: -220, behavior: 'smooth'})"
+                    title="Scroll Left">
+                    <span class="material-symbols-outlined">chevron_left</span> <span
+                        class="small fw-semibold">Left</span>
+                </button>
+                <button type="button" class="scroll-pill-btn"
+                    onclick="document.getElementById('adminProductsScrollContainer').scrollBy({left: 220, behavior: 'smooth'})"
+                    title="Scroll Right">
+                    <span class="material-symbols-outlined">chevron_right</span> <span
+                        class="small fw-semibold">Right</span>
+                </button>
+                <button type="button" class="scroll-pill-btn"
+                    onclick="document.getElementById('adminProductsScrollContainer').scrollBy({top: -160, behavior: 'smooth'})"
+                    title="Scroll Up / Top">
+                    <span class="material-symbols-outlined">keyboard_arrow_up</span> <span
+                        class="small fw-semibold">Top</span>
+                </button>
+                <button type="button" class="scroll-pill-btn"
+                    onclick="document.getElementById('adminProductsScrollContainer').scrollBy({top: 160, behavior: 'smooth'})"
+                    title="Scroll Down / Bottom">
+                    <span class="small fw-semibold">Bottom</span> <span
+                        class="material-symbols-outlined">keyboard_arrow_down</span>
+                </button>
+            </div>
+            <span class="text-muted small">Showing {{ products.count }} product{{ products.count|pluralize }}</span>
+        </div>
+    </div>
+
+    <!-- Scrollable Table Body -->
+    <div class="table-responsive admin-products-scroll-container" id="adminProductsScrollContainer">
+        <table class="table align-middle table-hover mb-0" style="min-width: 1200px;">
+            <thead class="table-light small text-uppercase text-muted">
+                <tr>
+                    <th style="width: 3%; min-width: 44px;" class="ps-3">
+                        <input type="checkbox" id="selectAllProductsCheckbox" class="form-check-input"
+                            title="Select All Products">
+                    </th>
+                    <th style="width: 4%; min-width: 40px;">#</th>
+                    <th style="min-width: 340px;">Product</th>
+                    <th style="min-width: 160px;">Category</th>
+                    <th style="min-width: 140px;">Price (₹)</th>
+                    <th style="min-width: 140px;">Stock</th>
+                    <th style="min-width: 130px;">Status</th>
+                    <th style="min-width: 130px;" class="text-end pe-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="small">
+                {% for p in products %}
+                <tr>
+                    <td class="ps-3">
+                        <input type="checkbox" class="form-check-input product-item-cb" value="{{ p.id }}"
+                            data-name="{{ p.name }}">
+                    </td>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-3 bg-light p-1 border d-flex align-items-center justify-content-center flex-shrink-0"
+                                style="width: 48px; height: 48px;">
+                                <img src="{{ p.display_image }}" alt="{{ p.name }}" class="img-fluid"
+                                    style="max-height: 40px; object-fit: contain;">
+                            </div>
+                            <div>
+                                <small class="text-muted fw-semibold text-uppercase">{{ p.brand }}</small>
+                                <strong class="d-block text-dark">{{ p.name }}</strong>
+                                <div class="d-flex align-items-center gap-1.5 flex-wrap mt-0.5">
+                                    {% if p.model_number %}
+                                    <span class="text-muted" style="font-size: 0.72rem;">Model: {{ p.model_number
+                                        }}</span>
+                                    {% endif %}
+                                    {% if p.seller %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle"
+                                        style="font-size: 0.68rem;">🏪 Seller: {{ p.seller_display }}</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-muted border" style="font-size: 0.68rem;">TechMart
+                                        Direct</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <small class="text-muted fw-semibold text-uppercase">{{ p.brand }}</small>
+                                    <strong class="d-block text-dark">{{ p.name }}</strong>
+                                    <div class="d-flex align-items-center gap-1.5 flex-wrap mt-0.5">
+                                        {% if p.model_number %}
+                                        <span class="text-muted" style="font-size: 0.72rem;">Model: {{
+                                            p.model_number
+                                            }}</span>
+                                        {% endif %}
+                                        {% if p.seller %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle"
+                                            style="font-size: 0.68rem;">🏪 Seller: {{ p.seller_display }}</span>
+                                        {% else %}
+                                        <span class="badge bg-light text-muted border"
+                                            style="font-size: 0.68rem;">TechMart Direct</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ p.category.name }}</span>
+                    </td>
+                    <td>
+                        <div class="fw-bold">₹{{ p.price|intcomma }}</div>
+                        {% if p.mrp > p.price %}
+                        <small class="text-muted text-decoration-line-through">₹{{ p.mrp|intcomma }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.stock > 5 %}
+                        <span class="badge bg-success-subtle text-success fw-bold">{{ p.stock }} in stock</span>
+                        {% elif p.stock > 0 %}
+                        <span class="badge bg-warning-subtle text-warning-emphasis fw-bold">Low: {{ p.stock }}
+                            left</span>
+                        {% else %}
+                        <span class="badge bg-danger text-white fw-bold">Out of Stock</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.is_featured %}
+                        <span class="badge bg-primary-subtle text-primary fw-semibold"
+                            style="font-size: 0.68rem;">Featured</span>
+                        {% endif %}
+                        {% if p.is_deal %}
+                        <span class="badge bg-warning-subtle text-warning-emphasis fw-bold"
+                            style="font-size: 0.68rem;">Deal</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-3">
+                        <div class="d-flex justify-content-end gap-1">
+                            <a href="{% url 'admin_product_edit' pk=p.id %}"
+                                class="btn btn-outline-secondary btn-sm p-1" title="Edit">
+                                <span class="material-symbols-outlined fs-6 align-middle">edit</span>
+                            </a>
+                            <form action="{% url 'admin_product_delete' pk=p.id %}" method="post"
+                                onsubmit="return confirm('Are you sure you want to delete {{ p.name }}?');"
+                                class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm p-1" title="Delete">
+                                    <span class="material-symbols-outlined fs-6 align-middle">delete</span>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted" style="height: 380px; vertical-align: middle;">
+                        <span class="material-symbols-outlined fs-1 text-secondary mb-2 d-block">inventory_2</span>
+                        <div class="fs-6 fw-semibold text-dark">No products found in the catalog.</div>
+                        <small class="text-muted d-block mt-1">Add new products to showcase them in the store catalog.</small>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <!-- Scroll Indicator Footer Bar -->
+    <div class="px-3 py-2 bg-light border-top d-flex justify-content-between align-items-center small text-muted"
+        style="font-size: 0.75rem;">
+        <span class="d-flex align-items-center gap-1">
+            <span class="material-symbols-outlined" style="font-size: 0.95rem; color: #1e463a;">open_with</span>
+            <span>Scroll horizontally & vertically or use buttons to navigate</span>
+        </span>
+        <div class="d-flex align-items-center gap-2">
+            <div class="scroll-pill-group" title="Scroll table">
+                <button type="button" class="scroll-pill-btn"
+                    onclick="document.getElementById('adminProductsScrollContainer').scrollBy({left: -220, behavior: 'smooth'})"
+                    title="Scroll Left">
+                    <span class="material-symbols-outlined">chevron_left</span> <span
+                        class="small fw-semibold">Left</span>
+                </button>
+                <button type="button" class="scroll-pill-btn"
+                    onclick="document.getElementById('adminProductsScrollContainer').scrollBy({left: 220, behavior: 'smooth'})"
+                    title="Scroll Right">
+                    <span class="small fw-semibold">Right</span> <span
+                        class="material-symbols-outlined">chevron_right</span>
+                </button>
+                <button type="button" class="scroll-pill-btn"
+                    onclick="document.getElementById('adminProductsScrollContainer').scrollBy({top: -160, behavior: 'smooth'})"
+                    title="Scroll Up / Top">
+                    <span class="material-symbols-outlined">keyboard_arrow_up</span> <span
+                        class="small fw-semibold">Top</span>
+                </button>
+                <button type="button" class="scroll-pill-btn"
+                    onclick="document.getElementById('adminProductsScrollContainer').scrollBy({top: 160, behavior: 'smooth'})"
+                    title="Scroll Down / Bottom">
+                    <span class="small fw-semibold">Bottom</span> <span
+                        class="material-symbols-outlined">keyboard_arrow_down</span>
+                </button>
+            </div>
+            <span>{{ products.count }} Products in catalog</span>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const selectAll = document.getElementById('selectAllProductsCheckbox');
+            const itemCheckboxes = document.querySelectorAll('.product-item-cb');
+            const bulkDeleteBtn = document.getElementById('btnBulkDeleteProducts');
+            const selectedBadge = document.getElementById('selectedProductCountBadge');
+            const bulkForm = document.getElementById('bulkDeleteProductsForm');
+
+            function updateBulkState() {
+                const checked = document.querySelectorAll('.product-item-cb:checked');
+                const count = checked.length;
+                if (selectedBadge) selectedBadge.textContent = count;
+                if (bulkDeleteBtn) {
+                    if (count > 0) {
+                        bulkDeleteBtn.classList.remove('d-none');
+                        bulkDeleteBtn.classList.add('d-inline-flex');
+                    } else {
+                        bulkDeleteBtn.classList.add('d-none');
+                        bulkDeleteBtn.classList.remove('d-inline-flex');
+                    }
+                }
+                if (selectAll) {
+                    if (itemCheckboxes.length > 0 && count === itemCheckboxes.length) {
+                        selectAll.checked = true;
+                        selectAll.indeterminate = false;
+                    } else if (count > 0) {
+                        selectAll.checked = false;
+                        selectAll.indeterminate = true;
+                    } else {
+                        selectAll.checked = false;
+                        selectAll.indeterminate = false;
+                    }
+                }
+            }
+
+            if (selectAll) {
+                selectAll.addEventListener('change', function () {
+                    itemCheckboxes.forEach(cb => cb.checked = selectAll.checked);
+                    updateBulkState();
+                });
+            }
+
+            itemCheckboxes.forEach(cb => {
+                cb.addEventListener('change', updateBulkState);
+            });
+
+            window.submitBulkDeleteProducts = function () {
+                const checked = document.querySelectorAll('.product-item-cb:checked');
+                if (checked.length === 0) {
+                    alert('Please select at least one product to delete.');
+                    return;
+                }
+                if (!confirm('Are you sure you want to permanently delete ' + checked.length + ' selected product(s) from catalog?\n\nThis cannot be undone.')) {
+                    return;
+                }
+                bulkForm.querySelectorAll('input[name="selected_products"]').forEach(el => el.remove());
+                checked.forEach(cb => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'selected_products';
+                    input.value = cb.value;
+                    bulkForm.appendChild(input);
+                });
+                bulkForm.submit();
+            };
+        });
+    </script>
+    {% endblock %}

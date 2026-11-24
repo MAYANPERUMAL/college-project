@@ -1,0 +1,367 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Account - Tech Mart | India's Premier Electronics Store{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Tech Mart Project Style Auth Wrapper */
+    .auth-page-wrapper {
+        min-height: calc(100vh - 280px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 44px 16px;
+        background: radial-gradient(circle at 10% 20%, rgba(30, 70, 58, 0.05) 0%, rgba(248, 250, 252, 0.95) 90%);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    }
+
+    .techmart-auth-card {
+        width: 100%;
+        max-width: 520px;
+        background: #ffffff;
+        border-radius: 18px;
+        box-shadow: 0 20px 45px -12px rgba(15, 41, 34, 0.16), 0 0 1px 1px rgba(0, 0, 0, 0.04);
+        padding: 40px 40px 34px 40px;
+        border: 1px solid rgba(226, 232, 240, 0.85);
+    }
+
+    /* Logo Branding */
+    .tm-auth-logo-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 26px;
+        text-decoration: none;
+    }
+
+    .tm-auth-logo-badge {
+        width: 44px;
+        height: 44px;
+        background: #1e463a;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #34d399;
+        box-shadow: 0 4px 12px rgba(30, 70, 58, 0.22);
+        flex-shrink: 0;
+    }
+
+    .tm-auth-logo-title {
+        font-size: 1.95rem;
+        font-weight: 800;
+        color: #1e463a;
+        letter-spacing: -0.02em;
+        line-height: 1;
+    }
+
+    .tm-auth-logo-accent {
+        color: #059669;
+    }
+
+    .tm-auth-logo-sub {
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #64748b;
+        letter-spacing: 0.14em;
+        margin-top: 3px;
+    }
+
+    /* Header Row */
+    .tm-auth-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 22px;
+    }
+
+    .tm-auth-title {
+        font-size: 1.55rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        letter-spacing: -0.01em;
+    }
+
+    .btn-create-account {
+        background-color: #1e463a;
+        color: #ffffff !important;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 9px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.2s ease;
+        border: none;
+        box-shadow: 0 2px 8px rgba(30, 70, 58, 0.2);
+    }
+
+    .btn-create-account:hover {
+        background-color: #15372d;
+        color: #ffffff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(30, 70, 58, 0.28);
+    }
+
+    /* Labels & Inputs */
+    .auth-field-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #374151;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .techmart-auth-card .form-control {
+        width: 100%;
+        height: 44px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 9px 14px;
+        font-size: 0.92rem;
+        color: #111827;
+        background-color: #ffffff;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .techmart-auth-card .form-control:focus {
+        border-color: #1e463a !important;
+        outline: none !important;
+        box-shadow: 0 0 0 3px rgba(30, 70, 58, 0.14) !important;
+    }
+
+    /* Role Toggle Buttons */
+    .role-select-btn {
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        background: #f8fafc;
+        color: #4b5563;
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .role-select-btn.active-role {
+        border-color: #1e463a !important;
+        background: #f0fdf4 !important;
+        color: #1e463a !important;
+        box-shadow: 0 2px 6px rgba(30, 70, 58, 0.1);
+    }
+
+    /* Submit Button (Tech Mart Emerald) */
+    .btn-techmart-submit {
+        background-color: #1e463a;
+        color: #ffffff !important;
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        height: 48px;
+        border-radius: 8px;
+        border: none;
+        width: 100%;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 14px rgba(30, 70, 58, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .btn-techmart-submit:hover {
+        background-color: #15372d;
+        color: #ffffff !important;
+        box-shadow: 0 6px 18px rgba(30, 70, 58, 0.35);
+        transform: translateY(-1px);
+    }
+
+    .btn-techmart-submit:active {
+        transform: translateY(0);
+    }
+
+    /* Footer link */
+    .auth-lost-pwd {
+        color: #1e463a;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: color 0.15s ease;
+    }
+
+    .auth-lost-pwd:hover {
+        color: #059669;
+        text-decoration: underline !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-page-wrapper">
+    <div class="techmart-auth-card">
+        <!-- Tech Mart Brand Identity Header -->
+        <a href="{% url 'home' %}" class="tm-auth-logo-wrap">
+            <div class="tm-auth-logo-badge">
+                <span class="material-symbols-outlined fs-4">bolt</span>
+            </div>
+            <div class="d-flex flex-column text-start lh-1">
+                <span class="tm-auth-logo-title">Tech<span class="tm-auth-logo-accent">Mart</span></span>
+                <span class="tm-auth-logo-sub">PREMIUM ELECTRONICS</span>
+            </div>
+        </a>
+
+        <!-- Header Row: Create Account + LOGIN button -->
+        <div class="tm-auth-header-row">
+            <h2 class="tm-auth-title">Create Account</h2>
+            <a href="{% url 'login' %}" class="btn-create-account">LOGIN</a>
+        </div>
+
+        <!-- Form Error Alerts -->
+        {% if form.errors %}
+        <div class="alert alert-danger py-2 px-3 small rounded-3 mb-3 border-danger-subtle" style="font-size: 0.8rem;">
+            <div class="fw-bold mb-1">Please correct the following errors:</div>
+            <ul class="mb-0 ps-3">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% elif messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} py-2 px-3 small rounded-3 mb-3" style="font-size: 0.8rem;">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Registration Form -->
+        <form method="post" action="{% url 'register' %}">
+            {% csrf_token %}
+
+            <!-- Account Type Selector -->
+            <div class="mb-3">
+                <label class="auth-field-label">ACCOUNT TYPE</label>
+                <div class="d-flex gap-2">
+                    <label class="flex-fill text-center role-select-btn active-role" id="roleBtnCustomer">
+                        <input type="radio" name="account_type" value="CUSTOMER" checked class="d-none" onchange="switchRole('CUSTOMER')">
+                        <span class="fw-bold small d-block">🛍️ Customer</span>
+                    </label>
+                    <label class="flex-fill text-center role-select-btn" id="roleBtnSeller">
+                        <input type="radio" name="account_type" value="SELLER" class="d-none" onchange="switchRole('SELLER')">
+                        <span class="fw-bold small d-block">🏪 Seller / Merchant</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Seller Store Name (Appears only if Seller selected) -->
+            <div class="mb-3 d-none" id="storeNameGroup">
+                <label class="auth-field-label">STORE / BUSINESS NAME *</label>
+                {{ form.store_name }}
+            </div>
+
+            <!-- First Name & Last Name (2 columns) -->
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <label class="auth-field-label">FIRST NAME *</label>
+                    {{ form.first_name }}
+                </div>
+                <div class="col-6">
+                    <label class="auth-field-label">LAST NAME *</label>
+                    {{ form.last_name }}
+                </div>
+            </div>
+
+            <!-- Username -->
+            <div class="mb-3">
+                <label class="auth-field-label">USERNAME *</label>
+                {{ form.username }}
+            </div>
+
+            <!-- Email Address -->
+            <div class="mb-3">
+                <label class="auth-field-label">EMAIL ADDRESS *</label>
+                {{ form.email }}
+            </div>
+
+            <!-- Mobile Number -->
+            <div class="mb-3">
+                <label class="auth-field-label">MOBILE NUMBER *</label>
+                {{ form.phone }}
+            </div>
+
+            <!-- Password -->
+            <div class="mb-3">
+                <label class="auth-field-label">PASSWORD *</label>
+                <div class="position-relative">
+                    <input type="password" name="password1" id="regPassword1" class="form-control pe-5" required autocomplete="new-password" placeholder="Enter password">
+                    <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted pe-3 text-decoration-none border-0" onclick="toggleRegPassword('regPassword1', 'regEye1')" style="box-shadow: none;" title="Toggle Password">
+                        <span class="material-symbols-outlined fs-5 align-middle" id="regEye1">visibility</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="mb-4">
+                <label class="auth-field-label">CONFIRM PASSWORD *</label>
+                <div class="position-relative">
+                    <input type="password" name="password2" id="regPassword2" class="form-control pe-5" autocomplete="new-password" placeholder="Confirm password">
+                    <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted pe-3 text-decoration-none border-0" onclick="toggleRegPassword('regPassword2', 'regEye2')" style="box-shadow: none;" title="Toggle Password">
+                        <span class="material-symbols-outlined fs-5 align-middle" id="regEye2">visibility</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-techmart-submit mb-3">
+                <span class="material-symbols-outlined fs-5">person_add</span>
+                <span>CREATE ACCOUNT</span>
+            </button>
+
+            <!-- Bottom Link -->
+            <div class="text-center mt-3">
+                <span class="text-muted small">Already have an account?</span>
+                <a href="{% url 'login' %}" class="auth-lost-pwd ms-1">
+                    Log In here →
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function switchRole(role) {
+    const custBtn = document.getElementById('roleBtnCustomer');
+    const sellerBtn = document.getElementById('roleBtnSeller');
+    const storeBox = document.getElementById('storeNameGroup');
+    if (role === 'SELLER') {
+        sellerBtn.classList.add('active-role');
+        custBtn.classList.remove('active-role');
+        storeBox.classList.remove('d-none');
+    } else {
+        custBtn.classList.add('active-role');
+        sellerBtn.classList.remove('active-role');
+        storeBox.classList.add('d-none');
+    }
+}
+
+function toggleRegPassword(fieldId, eyeId) {
+    const field = document.getElementById(fieldId);
+    const eye = document.getElementById(eyeId);
+    if (field.type === 'password') {
+        field.type = 'text';
+        eye.textContent = 'visibility_off';
+    } else {
+        field.type = 'password';
+        eye.textContent = 'visibility';
+    }
+}
+</script>
+{% endblock %}

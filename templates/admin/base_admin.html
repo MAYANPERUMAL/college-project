@@ -1,0 +1,566 @@
+{% load static humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Dashboard - Tech Mart{% endblock %}</title>
+
+    <!-- Zero-Flash Theme Script -->
+    <script>
+    (function() {
+        var pref = localStorage.getItem('techmart_theme_preference') || '{{ request.user.theme_preference|default:"system" }}';
+        var effective = pref;
+        if (pref === 'system') {
+            effective = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-bs-theme', effective);
+        document.documentElement.setAttribute('data-theme-preference', pref);
+    })();
+    </script>
+
+    <!-- Google Fonts (Lora, Newsreader & Playfair Display Editorial Serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400&family=Inter:wght@400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/techmart.css' %}">
+    <!-- Theme Mode Engine CSS & JS -->
+    <link rel="stylesheet" href="{% static 'css/theme-mode.css' %}?v=20261124_01">
+    <script src="{% static 'js/theme-manager.js' %}?v=20261124_01"></script>
+    <style>
+        html, body {
+            overflow-x: hidden !important;
+            max-width: 100vw;
+            width: 100%;
+        }
+        body {
+            background-color: #f8fafc;
+            min-height: 100vh;
+        }
+        .admin-sidebar {
+            width: 260px;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            color: #64748b;
+            flex-shrink: 0;
+            min-height: 100vh;
+            box-shadow: 1px 0 10px rgba(0, 0, 0, 0.02);
+        }
+        .admin-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 0.85rem;
+            margin: 2px 10px;
+            color: #475569;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            border-radius: 10px;
+            transition: all 0.18s ease;
+        }
+        .admin-nav-link:hover {
+            color: #0f172a;
+            background: #f1f5f9;
+        }
+        .admin-nav-link.active {
+            color: #ffffff !important;
+            background: #1e463a !important;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(30, 70, 58, 0.22);
+        }
+        .admin-nav-link .material-symbols-outlined {
+            font-size: 1.25rem;
+            color: #64748b;
+            transition: color 0.18s ease;
+        }
+        .admin-nav-link:hover .material-symbols-outlined {
+            color: #1e463a;
+        }
+        .admin-nav-link.active .material-symbols-outlined {
+            color: #f5d58f !important;
+        }
+        .admin-topbar {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 1040;
+            white-space: nowrap;
+            max-width: 100%;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .admin-topbar::-webkit-scrollbar {
+            display: none;
+        }
+        .admin-topbar .dropdown-menu {
+            z-index: 1060 !important;
+        }
+        /* Centered Notification Modal & Clean Card Styles */
+        .notif-modal-content {
+            border-radius: 20px !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18) !important;
+            overflow: hidden;
+            background: #ffffff;
+        }
+        .notif-list-container {
+            max-height: 480px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f8fafc;
+        }
+        .notif-list-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .notif-list-container::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+        .notif-list-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .notif-card-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.85rem;
+            padding: 0.95rem 1.25rem;
+            border-bottom: 1px solid #f1f5f9;
+            text-decoration: none !important;
+            transition: all 0.15s ease;
+            background: #ffffff;
+            color: inherit !important;
+        }
+        .notif-card-item:hover {
+            background-color: #f8fafc !important;
+            color: inherit !important;
+        }
+        .notif-card-item.notif-unread {
+            background-color: #fbfdfc !important;
+            border-left: 3px solid #1e463a;
+        }
+        .notif-badge-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .notif-icon-order {
+            background: #eaf3ee;
+            color: #1e463a;
+            border: 1px solid rgba(30, 70, 58, 0.15);
+        }
+        .notif-icon-status {
+            background: #e0f2fe;
+            color: #0284c7;
+            border: 1px solid rgba(2, 132, 199, 0.18);
+        }
+        .notif-icon-instruction {
+            background: #fef3c7;
+            color: #b45309;
+            border: 1px solid rgba(180, 83, 9, 0.18);
+        }
+        .notif-icon-registration {
+            background: #f3e8ff;
+            color: #7c3aed;
+            border: 1px solid rgba(124, 58, 237, 0.18);
+        }
+        .notif-icon-login {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="d-flex" style="min-width: 0; max-width: 100vw; overflow-x: hidden; width: 100%;">
+    <!-- Clean Modern Light Admin Sidebar -->
+    <aside class="admin-sidebar d-flex flex-column sticky-top" style="height: 100vh;">
+        <!-- Brand Header -->
+        <div class="p-3 border-bottom d-flex align-items-center justify-content-between" style="border-color: #f1f5f9 !important;">
+            <a href="{% url 'admin_dashboard' %}" class="d-flex align-items-center text-decoration-none text-dark" style="gap: 0.75rem;">
+                <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; background: #1e463a; color: #f5d58f; box-shadow: 0 2px 6px rgba(30, 70, 58, 0.25);">
+                    <span class="material-symbols-outlined fs-5">shield_person</span>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1 lh-sm">
+                        <span class="fw-bold tracking-tight sidebar-brand-title" style="font-size: 1.15rem; letter-spacing: -0.02em;">Tech<span class="sidebar-brand-accent">Mart</span></span>
+                        <span class="badge rounded-pill sidebar-role-badge">ADMIN</span>
+                    </div>
+                    <small class="text-muted d-block" style="font-size: 0.72rem; font-weight: 500;">Control Center</small>
+                </div>
+            </a>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-grow-1 py-3" style="overflow-y: auto;">
+            <div class="px-3 pb-2 text-uppercase text-secondary small fw-bold" style="font-size: 0.68rem; letter-spacing: 0.08em; color: #94a3b8 !important;">Management</div>
+            
+            <a href="{% url 'admin_dashboard' %}" class="admin-nav-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span>Dashboard Overview</span>
+            </a>
+            
+            <a href="{% url 'admin_products' %}" class="admin-nav-link {% if 'products' in request.path %}active{% endif %}">
+                <span class="material-symbols-outlined">inventory_2</span>
+                <span>Products Catalog</span>
+            </a>
+            
+            <a href="{% url 'admin_orders' %}" class="admin-nav-link {% if 'orders' in request.path %}active{% endif %}">
+                <span class="material-symbols-outlined">local_shipping</span>
+                <span>Orders & Logistics</span>
+            </a>
+            
+            <a href="{% url 'admin_customers' %}" class="admin-nav-link {% if 'customers' in request.path %}active{% endif %}">
+                <span class="material-symbols-outlined">people</span>
+                <span>Customer Accounts</span>
+            </a>
+
+            <a href="{% url 'admin_payment_settings' %}" class="admin-nav-link {% if 'payments' in request.path %}active{% endif %}">
+                <span class="material-symbols-outlined">qr_code_scanner</span>
+                <span>Payment & QR Setup</span>
+            </a>
+
+            <a href="{% url 'admin_broadcast_notification' %}" class="admin-nav-link {% if 'broadcast' in request.path %}active{% endif %}">
+                <span class="material-symbols-outlined">campaign</span>
+                <span>Broadcast & Alerts</span>
+            </a>
+
+            <div class="px-3 pt-3 pb-2 text-uppercase text-secondary small fw-bold" style="font-size: 0.68rem; letter-spacing: 0.08em; color: #94a3b8 !important;">Quick Links</div>
+
+            <a href="{% url 'home' %}" target="_blank" class="admin-nav-link">
+                <span class="material-symbols-outlined">storefront</span>
+                <span>Live Storefront</span>
+                <span class="material-symbols-outlined ms-auto text-muted" style="font-size: 0.95rem;">open_in_new</span>
+            </a>
+        </nav>
+
+        <!-- Current Admin User Strip -->
+        <div class="p-3 border-top" style="border-color: #f1f5f9 !important;">
+            <div class="d-flex align-items-center justify-content-between p-2 rounded-3 sidebar-user-card">
+                <a href="{% url 'customer_profile' %}" class="d-flex align-items-center gap-2 text-truncate me-2 text-decoration-none" title="Admin Account Settings & Profile">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width: 34px; height: 34px; font-size: 0.85rem; background: linear-gradient(135deg, #1e463a, #2a5f50);">
+                        {{ user.username|slice:":1"|upper }}
+                    </div>
+                    <div class="text-truncate lh-sm">
+                        <span class="d-block text-dark fw-bold text-truncate" style="font-size: 0.82rem;">{{ user.username }}</span>
+                        <span class="d-inline-flex align-items-center gap-1 text-muted" style="font-size: 0.68rem;">
+                            <span class="rounded-circle" style="width: 6px; height: 6px; background: #16a34a;"></span>
+                            Profile Settings →
+                        </span>
+                    </div>
+                </a>
+                <a href="{% url 'logout' %}" class="btn btn-sm btn-light border text-muted d-flex align-items-center justify-content-center p-0 rounded-2" title="Sign Out" style="width: 30px; height: 30px;">
+                    <span class="material-symbols-outlined fs-5">logout</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Admin Content Area -->
+    <div class="flex-grow-1 d-flex flex-column min-vh-100" style="min-width: 0; max-width: 100%; overflow-x: hidden;">
+        <!-- Topbar -->
+        <header class="admin-topbar d-flex justify-content-between align-items-center flex-nowrap gap-3">
+            <div class="d-flex align-items-center gap-2 text-truncate" style="min-width: 0;">
+                <span class="badge rounded-pill fw-semibold text-nowrap" style="background: rgba(30, 70, 58, 0.1); color: #1e463a; font-size: 0.72rem; padding: 5px 12px;">Admin Portal</span>
+                <span class="text-muted small text-truncate">TechMart Electronics Platform</span>
+            </div>
+            <div class="d-flex align-items-center gap-2 gap-md-2.5 flex-nowrap flex-shrink-0">
+                <!-- Platform Actions -->
+                <a href="{% url 'home' %}" class="btn btn-sm rounded-pill fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs btn-topbar-storefront text-nowrap px-3 py-1.5" title="View Customer Storefront">
+                    <span class="material-symbols-outlined fs-6 text-muted">storefront</span>
+                    <span>Customer Storefront</span>
+                </a>
+                <a href="{% url 'admin_broadcast_notification' %}" class="btn btn-sm rounded-pill fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm btn-topbar-announcement text-nowrap px-3 py-1.5" title="Dispatch Instruction / Broadcast">
+                    <span class="material-symbols-outlined fs-6 text-warning">campaign</span>
+                    <span>Send Announcement</span>
+                </a>
+
+                <div class="vr my-1 text-muted opacity-25 d-none d-sm-block"></div>
+
+                <!-- Theme Mode Switcher Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light border rounded-pill px-2.5 py-1.5 d-flex align-items-center gap-1.5 shadow-sm theme-toggle-btn text-nowrap"
+                            type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Appearance: Light, Dark, or System">
+                        <span class="material-symbols-outlined fs-6 theme-current-icon">brightness_auto</span>
+                        <span class="small fw-semibold d-none d-md-inline theme-current-label">Theme</span>
+                        <span class="material-symbols-outlined" style="font-size: 0.8rem;">expand_more</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border rounded-3 p-1.5" style="min-width: 175px; z-index: 99999 !important;">
+                        <li>
+                            <button type="button" class="dropdown-item rounded-2 d-flex align-items-center justify-content-between py-1.5 px-2.5 small" onclick="setTechMartTheme('light')">
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="material-symbols-outlined fs-6 text-warning">light_mode</span>
+                                    <span>Light Mode</span>
+                                </span>
+                                <span class="material-symbols-outlined fs-6 theme-check-icon d-none" data-theme-target="light">check</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="dropdown-item rounded-2 d-flex align-items-center justify-content-between py-1.5 px-2.5 small" onclick="setTechMartTheme('dark')">
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="material-symbols-outlined fs-6 text-primary">dark_mode</span>
+                                    <span>Dark Mode</span>
+                                </span>
+                                <span class="material-symbols-outlined fs-6 theme-check-icon d-none" data-theme-target="dark">check</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="dropdown-item rounded-2 d-flex align-items-center justify-content-between py-1.5 px-2.5 small" onclick="setTechMartTheme('system')">
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="material-symbols-outlined fs-6 text-secondary">brightness_auto</span>
+                                    <span>System Sync</span>
+                                </span>
+                                <span class="material-symbols-outlined fs-6 theme-check-icon d-none" data-theme-target="system">check</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Admin Notification Bell Trigger -->
+                <button class="btn btn-light border position-relative d-inline-flex align-items-center justify-content-center p-1 rounded-circle text-dark shadow-sm topbar-notif-btn flex-shrink-0" type="button" data-bs-toggle="modal" data-bs-target="#adminNotifModal" title="Admin Notifications" style="width: 34px; height: 34px;">
+                    <span class="material-symbols-outlined fs-5">notifications</span>
+                    {% if unread_notifications_count > 0 %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" style="font-size: 0.65rem;">
+                        {{ unread_notifications_count }}
+                    </span>
+                    {% endif %}
+                </button>
+
+                <div class="vr my-1 text-muted opacity-25 d-none d-sm-block"></div>
+
+                <!-- Admin User Account Chip -->
+                <a href="{% url 'customer_profile' %}" class="badge bg-light text-dark border px-2.5 py-1.5 rounded-pill d-inline-flex align-items-center gap-1.5 text-decoration-none shadow-xs text-nowrap" title="Admin Profile & Settings">
+                    <span class="material-symbols-outlined fs-6 text-primary">shield_person</span>
+                    <span class="small fw-semibold d-none d-sm-inline">{{ request.user.email }}</span>
+                    <span class="badge bg-primary text-white ms-0.5" style="font-size: 0.65rem; border-radius: 4px;">Admin</span>
+                </a>
+
+                <!-- Log Out Button -->
+                <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-danger fw-semibold d-inline-flex align-items-center gap-1 rounded-pill px-3 py-1 shadow-sm text-nowrap flex-shrink-0" title="Sign Out of Admin Portal">
+                    <span class="material-symbols-outlined fs-6">logout</span>
+                    <span>Log Out</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Admin Flash Messages -->
+        <div class="container-fluid px-4 mt-3">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show d-flex align-items-center gap-2 py-2 shadow-sm rounded-3" role="alert">
+                    <span class="material-symbols-outlined fs-5">info</span>
+                    <div class="flex-grow-1">{{ message }}</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Page Specific Admin Content -->
+        <main class="container-fluid px-4 py-3 flex-grow-1" style="min-width: 0; max-width: 100%;">
+            {% block admin_content %}{% endblock %}
+        </main>
+    </div>
+</div>
+
+<!-- Centered Admin Notifications Modal -->
+<div class="modal fade" id="adminNotifModal" tabindex="-1" aria-labelledby="adminNotifModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 540px;">
+        <div class="modal-content notif-modal-content">
+            <!-- Modal Header -->
+            <div class="px-4 py-3 bg-white border-bottom d-flex justify-content-between align-items-center" style="border-color: #f1f5f9 !important;">
+                <div class="d-flex align-items-center" style="gap: 0.75rem;">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: rgba(30, 70, 58, 0.1); color: #1e463a;">
+                        <span class="material-symbols-outlined fs-5">notifications</span>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark" id="adminNotifModalLabel" style="letter-spacing: -0.01em;">Admin Alerts & Notifications</h6>
+                        <small class="text-muted" style="font-size: 0.72rem;">{{ unread_notifications_count }} unread alerts</small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    {% if unread_notifications_count > 0 %}
+                    <form action="{% url 'notifications_mark_all_read' %}" method="post" class="m-0">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-2.5 d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                            <span class="material-symbols-outlined" style="font-size: 0.9rem;">done_all</span>
+                            <span>Mark all read</span>
+                        </button>
+                    </form>
+                    {% endif %}
+                    <button type="button" class="btn-close ms-1" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Modal Body (Centered & Scrollable with Selection & Deletion) -->
+            {% if recent_notifications %}
+            <div class="px-3 py-2 bg-light border-bottom d-flex align-items-center justify-content-between" style="border-color: #f1f5f9 !important;">
+                <div class="d-flex align-items-center gap-2">
+                    <input type="checkbox" id="modalSelectAll" class="form-check-input">
+                    <label for="modalSelectAll" class="small fw-semibold text-dark mb-0" style="cursor: pointer;">Select All</label>
+                    <span class="text-muted small" id="modalSelectedCountText">(0 selected)</span>
+                </div>
+                <div class="d-flex align-items-center gap-1.5">
+                    <button type="submit" form="modalBulkDeleteForm" name="action" value="delete_selected" class="btn btn-sm btn-danger rounded-pill py-0.5 px-2.5 fw-bold d-none d-inline-flex align-items-center gap-1 shadow-sm" id="modalDeleteSelectedBtn" style="font-size: 0.72rem;">
+                        <span class="material-symbols-outlined" style="font-size: 0.85rem;">delete</span>
+                        <span id="modalDeleteBtnText">Delete</span>
+                    </button>
+                    <button type="submit" form="modalBulkDeleteForm" name="action" value="clear_all" class="btn btn-sm btn-outline-danger rounded-pill py-0.5 px-2 small" style="font-size: 0.72rem;" onclick="return confirm('Delete all alerts in your inbox?');">
+                        Clear All
+                    </button>
+                </div>
+            </div>
+
+            <form id="modalBulkDeleteForm" method="post" action="{% url 'notifications_bulk_delete' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                
+                <div class="modal-body p-0 notif-list-container">
+                    {% for notif in recent_notifications %}
+                    <div class="notif-card-item {% if not notif.is_read %}notif-unread{% endif %} d-flex align-items-start p-3 border-bottom" style="gap: 0.75rem; cursor: pointer;" data-href="{% if notif.link_url %}{% url 'notification_mark_read' pk=notif.pk %}{% else %}{% url 'notifications_list' %}{% endif %}" onclick="openAlert(this);">
+                        <!-- Checkbox -->
+                        <div class="pt-1" onclick="event.stopPropagation();">
+                            <input type="checkbox" name="notification_ids" value="{{ notif.pk }}" class="form-check-input modal-notif-check">
+                        </div>
+
+                        <!-- Icon -->
+                        <div class="notif-badge-icon {% if notif.notification_type == 'ORDER' %}notif-icon-order{% elif notif.notification_type == 'STATUS_UPDATE' %}notif-icon-status{% elif notif.notification_type == 'INSTRUCTION' %}notif-icon-instruction{% elif notif.notification_type == 'REGISTRATION' %}notif-icon-registration{% elif notif.notification_type == 'LOGIN' %}notif-icon-login{% else %}notif-icon-order{% endif %}">
+                            <span class="material-symbols-outlined fs-5">{{ notif.icon|default:'notifications' }}</span>
+                        </div>
+
+                        <!-- Text -->
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="d-flex align-items-center justify-content-between gap-1 mb-1">
+                                <span class="fw-bold text-dark text-truncate" style="font-size: 0.85rem;">{{ notif.title }}</span>
+                                {% if not notif.is_read %}
+                                <span class="badge rounded-pill" style="background: rgba(30, 70, 58, 0.12); color: #1e463a; font-size: 0.62rem; font-weight: 700;">NEW</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-secondary mb-1 text-truncate" style="font-size: 0.76rem; line-height: 1.35;">{{ notif.message }}</p>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-1 text-muted" style="font-size: 0.7rem;">
+                                    <span class="material-symbols-outlined" style="font-size: 0.8rem;">schedule</span>
+                                    <span>{{ notif.created_at|naturaltime }}</span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light border text-danger p-0 rounded-circle d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;" title="Delete this alert" onclick="event.stopPropagation(); deleteSingleAlert('{{ notif.pk }}');">
+                                    <span class="material-symbols-outlined" style="font-size: 0.9rem;">delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </form>
+            {% else %}
+            <div class="modal-body p-0 notif-list-container">
+                <div class="p-5 text-center text-muted">
+                    <span class="material-symbols-outlined fs-1 text-secondary mb-2" style="opacity: 0.5;">notifications_off</span>
+                    <h6 class="fw-bold mb-1">No Recent Alerts</h6>
+                    <small class="text-muted">You're all caught up with store activities.</small>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Modal Footer -->
+            <div class="px-4 py-2.5 bg-light border-top d-flex justify-content-between align-items-center" style="border-color: #f1f5f9 !important;">
+                <span class="text-muted small" style="font-size: 0.72rem;">Showing latest alerts</span>
+                <a href="{% url 'notifications_list' %}" class="btn btn-sm fw-semibold rounded-pill px-3 d-inline-flex align-items-center gap-1 shadow-sm" style="background: #1e463a; color: #ffffff;">
+                    <span>View All in Inbox</span>
+                    <span class="material-symbols-outlined fs-6">arrow_forward</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Auto-sync CSRF token from active cookie before any form submit to prevent token rotation 403s
+document.addEventListener('submit', function(e) {
+    const match = document.cookie.match(/csrftoken=([\w-]+)/);
+    if (match && match[1] && e.target && e.target.querySelector) {
+        const csrfInput = e.target.querySelector('input[name="csrfmiddlewaretoken"]');
+        if (csrfInput) {
+            csrfInput.value = match[1];
+        }
+    }
+}, true);
+
+// Notification modal select and delete handlers
+document.addEventListener('DOMContentLoaded', function() {
+    const modalSelectAll = document.getElementById('modalSelectAll');
+    const modalCheckboxes = document.querySelectorAll('.modal-notif-check');
+    const modalDelBtn = document.getElementById('modalDeleteSelectedBtn');
+    const modalCountText = document.getElementById('modalSelectedCountText');
+    const modalDelBtnText = document.getElementById('modalDeleteBtnText');
+
+    function updateModalSelection() {
+        let count = 0;
+        modalCheckboxes.forEach(cb => {
+            if (cb.checked) count++;
+        });
+
+        if (modalCountText) {
+            modalCountText.textContent = '(' + count + ' selected)';
+        }
+
+        if (modalDelBtn) {
+            if (count > 0) {
+                modalDelBtn.classList.remove('d-none');
+                if (modalDelBtnText) modalDelBtnText.textContent = 'Delete (' + count + ')';
+            } else {
+                modalDelBtn.classList.add('d-none');
+            }
+        }
+
+        if (modalSelectAll && modalCheckboxes.length > 0) {
+            modalSelectAll.checked = (count === modalCheckboxes.length);
+        }
+    }
+
+    if (modalSelectAll) {
+        modalSelectAll.addEventListener('change', function() {
+            modalCheckboxes.forEach(cb => {
+                cb.checked = modalSelectAll.checked;
+            });
+            updateModalSelection();
+        });
+    }
+
+    modalCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateModalSelection);
+    });
+});
+
+function openAlert(el) {
+    if (!el) return;
+    const url = el.getAttribute('data-href');
+    if (url) window.location.href = url;
+}
+
+function deleteSingleAlert(pk) {
+    if (!confirm('Delete this notification alert?')) return;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/notifications/' + pk + '/delete/';
+    const match = document.cookie.match(/csrftoken=([\w-]+)/);
+    const token = match ? match[1] : '';
+    form.innerHTML = '<input type="hidden" name="csrfmiddlewaretoken" value="' + token + '"><input type="hidden" name="next" value="' + window.location.pathname + '">';
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
+</body>
+</html>

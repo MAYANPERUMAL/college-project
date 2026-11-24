@@ -1,0 +1,228 @@
+{% extends 'admin/base_admin.html' %}
+{% load humanize %}
+
+{% block title %}Manage Order #{{ order.order_number }} - Tech Mart Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h3 class="fw-bold mb-1 d-flex align-items-center gap-2">
+            <span>Order #{{ order.order_number }}</span>
+            <span class="badge {% if order.order_status == 'DELIVERED' %}bg-success{% elif order.order_status == 'CANCELLED' %}bg-danger{% else %}bg-primary{% endif %} fs-6">
+                {{ order.get_order_status_display }}
+            </span>
+        </h3>
+        <p class="text-muted small mb-0">Customer: <strong>{{ order.shipping_name }}</strong> (User: {{ order.user.username }}) • Placed {{ order.created_at|date:"d M Y, h:i A" }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'order_invoice' order_number=order.order_number %}" target="_blank" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+            <span class="material-symbols-outlined fs-6">receipt_long</span>
+            <span>View GST Invoice</span>
+        </a>
+        <a href="{% url 'admin_orders' %}" class="btn btn-light border btn-sm d-flex align-items-center gap-1">
+            <span class="material-symbols-outlined fs-6">arrow_back</span>
+            <span>Back to Orders</span>
+        </a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Left Column: Status Update Form -->
+    <div class="col-lg-7">
+        <div class="card border rounded-4 p-4 shadow-sm bg-white mb-4">
+            <h5 class="fw-bold mb-3 border-bottom pb-2 d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined text-primary fs-5">local_shipping</span>
+                <span>Update Logistics & Fulfillment Status</span>
+            </h5>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Order Fulfillment Status *</label>
+                        {{ form.order_status }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Payment Status *</label>
+                        {{ form.payment_status }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Courier Partner Name</label>
+                        {{ form.courier_name }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Airway Bill / Tracking AWB</label>
+                        {{ form.tracking_number }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Current Location Milestone</label>
+                        {{ form.current_location }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Estimated Delivery Date/Time</label>
+                        {{ form.estimated_delivery_text }}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold text-primary d-flex align-items-center gap-1">
+                            <span class="material-symbols-outlined fs-6">support_agent</span>
+                            <span>Special Instruction / Customer Message (Optional)</span>
+                        </label>
+                        <input type="text" name="admin_instruction" class="form-control" placeholder="e.g. Package dispatched via Bluedart Priority. Delivery agent will call before arrival.">
+                        <small class="text-muted">This instruction will be delivered directly as an instant notification to {{ order.shipping_name }}.</small>
+                    </div>
+
+                    <div class="col-12 mt-4 pt-2 border-top d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary px-4 fw-bold d-flex align-items-center gap-2">
+                            <span class="material-symbols-outlined fs-5">send</span>
+                            <span>Update Milestones & Notify Customer</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Ordered Items Card -->
+        <div class="card border rounded-4 shadow-sm bg-white overflow-hidden mb-4">
+            <div class="p-3 bg-light border-bottom">
+                <h6 class="fw-bold mb-0">Ordered Items ({{ items.count }})</h6>
+            </div>
+            <div class="p-3">
+                {% for item in items %}
+                <div class="d-flex align-items-center justify-content-between py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded bg-light p-1 border d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                            <img src="{{ item.image_url }}" alt="{{ item.product_name }}" class="img-fluid" style="max-height: 44px; object-fit: contain;">
+                        </div>
+                        <div>
+                            <strong class="d-block text-dark">{{ item.product_name }}</strong>
+                            <small class="text-muted">Qty: {{ item.quantity }} × ₹{{ item.price|intcomma }}</small>
+                            {% if item.model_number %}<small class="text-muted">• Model: {{ item.model_number }}</small>{% endif %}
+                        </div>
+                    </div>
+                    <div class="fw-bold font-heading text-primary">
+                        ₹{{ item.line_total|intcomma }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Customer & Shipping Address (Delivery Address & Recipient - Left Side) -->
+        <div class="card border rounded-4 p-4 shadow-sm bg-white mb-4">
+            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined text-primary fs-5">location_on</span>
+                <span>Delivery Address & Recipient</span>
+            </h6>
+            <strong class="text-dark fs-6">{{ order.shipping_name }}</strong>
+            <p class="small text-muted mb-2 mt-1">
+                {{ order.shipping_address_line1 }}<br>
+                {% if order.shipping_address_line2 %}{{ order.shipping_address_line2 }}<br>{% endif %}
+                {% if order.shipping_landmark %}Near {{ order.shipping_landmark }}<br>{% endif %}
+                {{ order.shipping_city }}, {{ order.shipping_state }} - <strong>{{ order.shipping_pincode }}</strong>
+            </p>
+            <div class="small text-muted">
+                <span class="material-symbols-outlined fs-6 align-middle">call</span> {{ order.shipping_phone }}
+            </div>
+            {% if order.user.gst_number %}
+            <div class="small text-success mt-2">
+                <strong>GSTIN:</strong> {{ order.user.gst_number }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Customer & Delivery Details -->
+    <div class="col-lg-5">
+        <!-- Delivery Partner Assignment -->
+        <div class="card border rounded-4 p-4 shadow-sm bg-white mb-4">
+            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined text-primary fs-5">two_wheeler</span>
+                <span>Assigned Delivery Partner</span>
+            </h6>
+            {% if order.delivery_partner %}
+                <div class="p-3 bg-light rounded-3 border mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <strong class="text-dark">{{ order.delivery_partner.get_full_name|default:order.delivery_partner.username }}</strong>
+                        <span class="badge bg-success-subtle text-success">Assigned</span>
+                    </div>
+                    <div class="small text-muted">Vehicle: <strong>{{ order.delivery_partner.vehicle_number|default:"Not specified" }}</strong> ({{ order.delivery_partner.vehicle_type|default:"Bike" }})</div>
+                    <div class="small text-muted">Phone: <a href="tel:{{ order.delivery_partner.phone }}" class="text-primary text-decoration-none">{{ order.delivery_partner.phone|default:"No phone" }}</a></div>
+                    {% if order.delivery_assigned_at %}
+                    <div class="small text-muted mt-1">Assigned At: {{ order.delivery_assigned_at|date:"d M Y, h:i A" }}</div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="alert alert-warning py-2 px-3 small border-0 mb-3 d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined fs-5">warning</span>
+                    <span>No delivery partner assigned yet.</span>
+                </div>
+            {% endif %}
+
+            <!-- Assignment Form -->
+            <form method="post" action="{% url 'admin_order_assign_delivery' order.order_number %}">
+                {% csrf_token %}
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">{% if order.delivery_partner %}Reassign Partner{% else %}Select Delivery Partner{% endif %}</label>
+                    <select name="delivery_partner" class="form-select form-select-sm" required>
+                        <option value="">-- Choose Active Partner --</option>
+                        {% for partner in available_partners %}
+                        <option value="{{ partner.id }}" {% if order.delivery_partner_id == partner.id %}selected{% endif %}>
+                            {{ partner.get_full_name|default:partner.username }} ({{ partner.vehicle_number|default:partner.vehicle_type|default:"Partner" }} - {{ partner.current_city|default:"City" }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <input type="text" name="delivery_notes" value="{{ order.delivery_notes|default:'' }}" class="form-control form-control-sm" placeholder="Optional notes for delivery partner">
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary w-100 fw-bold rounded-3">
+                    <span class="d-flex align-items-center justify-content-center gap-1">
+                        <span class="material-symbols-outlined fs-6">assignment_ind</span>
+                        <span>{% if order.delivery_partner %}Update Partner Assignment{% else %}Assign Delivery Partner{% endif %}</span>
+                    </span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Delivery PIN & Courier Info -->
+        <div class="card border rounded-4 p-4 shadow-sm bg-white mb-4">
+            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined text-primary fs-5">pin</span>
+                <span>Secure Doorstep Handover</span>
+            </h6>
+            <div class="p-3 bg-light rounded-3 text-center border">
+                <span class="small text-muted fw-bold d-block mb-1">Customer Handover PIN</span>
+                <span class="display-6 fw-bold font-monospace text-primary letter-spacing-2">{{ order.delivery_pin }}</span>
+                <small class="text-muted d-block mt-1">Delivery courier must verify this PIN upon physical handover.</small>
+            </div>
+        </div>
+
+        <!-- Financial Summary (Order Financials - Right Side) -->
+        <div class="card border rounded-4 p-4 shadow-sm bg-white mb-4">
+            <h6 class="fw-bold mb-3">Order Financials</h6>
+            <div class="d-flex justify-content-between mb-2 small text-muted">
+                <span>Subtotal:</span>
+                <span>₹{{ order.subtotal|intcomma }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2 small text-muted">
+                <span>Delivery Fee:</span>
+                <span class="text-success fw-bold">FREE</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2 small text-muted">
+                <span>GST (18% Component):</span>
+                <span>₹{{ order.gst_amount|intcomma }}</span>
+            </div>
+            <hr class="my-2">
+            <div class="d-flex justify-content-between fw-bold fs-5 text-dark">
+                <span>Total Amount:</span>
+                <span class="text-primary font-heading">₹{{ order.total_amount|intcomma }}</span>
+            </div>
+            <div class="mt-2 small text-muted">
+                Payment: <span class="badge bg-light text-dark border">{{ order.get_payment_method_display }}</span>
+                <span class="badge bg-success-subtle text-success">{{ order.get_payment_status_display }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

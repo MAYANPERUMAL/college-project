@@ -1,0 +1,336 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Manage Categories - Tech Mart Admin{% endblock %}
+
+{% block admin_content %}
+<style>
+    /* Sleek Scrollable Container with Right-Side Vertical Scrollbar */
+    .cat-table-scroll-container {
+        max-height: 520px;
+        overflow-y: auto;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #94a3b8 #f1f5f9;
+        border-radius: 0 0 16px 16px;
+    }
+    .cat-table-scroll-container::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    .cat-table-scroll-container::-webkit-scrollbar-track {
+        background: #f8fafc;
+        border-left: 1px solid #f1f5f9;
+    }
+    .cat-table-scroll-container::-webkit-scrollbar-thumb {
+        background: #94a3b8;
+        border-radius: 6px;
+    }
+    .cat-table-scroll-container::-webkit-scrollbar-thumb:hover {
+        background: #1e463a;
+    }
+
+    /* Sticky Table Header during Scroll */
+    .cat-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: #f8fafc !important;
+        box-shadow: inset 0 -1px 0 #e2e8f0;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #64748b;
+        padding-top: 0.85rem;
+        padding-bottom: 0.85rem;
+    }
+
+    .cat-row {
+        transition: background-color 0.15s ease;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .cat-row:hover {
+        background-color: #f8fafc !important;
+    }
+    .cat-icon-squircle {
+        width: 40px;
+        height: 40px;
+        background: #eaf3ee;
+        color: #1e463a;
+        border-radius: 10px;
+        border: 1px solid rgba(30, 70, 58, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .cat-action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        color: #64748b;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.18s ease;
+        padding: 0;
+    }
+    .cat-action-btn:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+        border-color: #cbd5e1;
+    }
+    .cat-action-btn.btn-delete:hover {
+        background: #fee2e2;
+        color: #dc2626;
+        border-color: #fca5a5;
+    }
+    .cat-sticky-sidebar {
+        position: sticky;
+        top: 85px;
+    }
+</style>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h3 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.02em;">Category Management</h3>
+            <span class="badge rounded-pill fw-semibold" style="background: rgba(30, 70, 58, 0.1); color: #1e463a; font-size: 0.72rem; padding: 4px 10px;">{{ categories.count }} Categories</span>
+        </div>
+        <p class="text-muted small mb-0">Organize and manage store categories, storefront icons, and catalog display hierarchy</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left: Scrollable Categories List Card -->
+    <div class="col-xl-8 col-lg-7">
+        <div class="card border rounded-4 shadow-sm bg-white overflow-hidden" style="border-color: #e2e8f0 !important;">
+            <!-- Card Header with Count & Instant Filter -->
+            <div class="px-4 py-3 bg-white border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-color: #f1f5f9 !important;">
+                <div class="d-flex align-items-center" style="gap: 0.75rem;">
+                    <div class="cat-icon-squircle" style="width: 36px; height: 36px; border-radius: 10px;">
+                        <span class="material-symbols-outlined fs-6">category</span>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark" style="font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 0.95rem;">Active Categories ({{ categories.count }})</h6>
+                        <small class="text-muted d-block" style="font-size: 0.75rem; font-family: 'Inter', system-ui, -apple-system, sans-serif;">Scroll down to view all categories</small>
+                    </div>
+                </div>
+
+                <!-- Instant Filter Input -->
+                <div class="d-flex align-items-center gap-2">
+                    <div class="input-group input-group-sm" style="width: 200px;">
+                        <span class="input-group-text bg-light border-end-0 py-1">
+                            <span class="material-symbols-outlined fs-6 text-muted">search</span>
+                        </span>
+                        <input type="text" id="categoryQuickFilter" class="form-control border-start-0 py-1 ps-0" placeholder="Filter category..." style="font-size: 0.75rem;">
+                    </div>
+                    <span class="badge rounded-pill text-muted fw-normal d-none d-sm-inline" style="background: #f8fafc; border: 1px solid #e2e8f0; font-size: 0.7rem;">
+                        Sorted by order
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Right-Side Scrollable Table Container -->
+            <div class="cat-table-scroll-container">
+                <table class="table align-middle mb-0 cat-table" style="min-width: 580px;">
+                    <thead>
+                        <tr>
+                            <th class="ps-4" style="width: 44%;">Category</th>
+                            <th style="width: 24%;">Slug</th>
+                            <th style="width: 16%;">Products</th>
+                            <th class="text-end pe-4" style="width: 16%; min-width: 90px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small" id="categoriesTableBody">
+                        {% for cat in categories %}
+                        <tr class="cat-row" data-name="{{ cat.name|lower }}" data-slug="{{ cat.slug|lower }}">
+                            <td class="ps-4 py-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="cat-icon-squircle">
+                                        <span class="material-symbols-outlined fs-5">{{ cat.icon_name|default:'devices' }}</span>
+                                    </div>
+                                    <div class="overflow-hidden">
+                                        <span class="fw-bold text-dark d-block lh-sm" style="font-size: 0.92rem;">{{ cat.name }}</span>
+                                        {% if cat.description %}
+                                        <small class="text-muted d-block text-truncate mt-1" style="max-width: 260px; font-size: 0.76rem;">{{ cat.description }}</small>
+                                        {% else %}
+                                        <small class="text-muted d-block" style="font-size: 0.72rem; opacity: 0.6;">No description</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3">
+                                <span class="badge rounded-pill fw-medium" style="background: #f8fafc; color: #475569; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.75rem; border: 1px solid #e2e8f0; padding: 4px 9px;">
+                                    /{{ cat.slug }}
+                                </span>
+                            </td>
+                            <td class="py-3">
+                                <span class="badge rounded-pill fw-semibold" style="background: rgba(30, 70, 58, 0.08); color: #1e463a; border: 1px solid rgba(30, 70, 58, 0.15); font-size: 0.74rem; padding: 4px 10px;">
+                                    {{ cat.product_count }} SKU{{ cat.product_count|pluralize }}
+                                </span>
+                            </td>
+                            <td class="text-end pe-4 py-3">
+                                <div class="d-flex justify-content-end align-items-center gap-1.5">
+                                    <a href="{% url 'admin_category_edit' pk=cat.id %}" class="cat-action-btn" title="Edit Category">
+                                        <span class="material-symbols-outlined" style="font-size: 1rem;">edit</span>
+                                    </a>
+                                    <form action="{% url 'admin_category_delete' pk=cat.id %}" method="post" onsubmit="return confirm('Are you sure you want to delete category \'{{ cat.name }}\'? Associated products will remain in store as uncategorized.');" class="d-inline m-0">
+                                        {% csrf_token %}
+                                        <button type="submit" class="cat-action-btn btn-delete" title="Delete Category">
+                                            <span class="material-symbols-outlined" style="font-size: 1rem;">delete</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-5 text-muted">
+                                <span class="material-symbols-outlined fs-2 text-secondary mb-1">category</span>
+                                <div class="small">No categories created yet. Add one using the form on the right.</div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Scroll Indicator Footer -->
+            <div class="px-4 py-2 bg-light border-top d-flex justify-content-between align-items-center small text-muted" style="font-size: 0.72rem;">
+                <span id="filteredCountLabel">Showing {{ categories.count }} of {{ categories.count }} categories</span>
+                <span class="d-flex align-items-center gap-1">
+                    <span class="material-symbols-outlined fs-6" style="font-size: 0.9rem;">unfold_more</span>
+                    <span>Scroll on right side for more</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Add New Category Form (Sticky) -->
+    <div class="col-xl-4 col-lg-5">
+        <div class="card border rounded-4 p-4 shadow-sm bg-white cat-sticky-sidebar" style="border-color: #e2e8f0 !important;">
+            <div class="d-flex align-items-center pb-3 mb-3 border-bottom" style="gap: 0.75rem; border-color: #f1f5f9 !important;">
+                <div class="rounded-3 d-flex align-items-center justify-content-center text-white flex-shrink-0" style="width: 38px; height: 38px; min-width: 38px; background: #1e463a; box-shadow: 0 2px 8px rgba(30, 70, 58, 0.28);">
+                    <span class="material-symbols-outlined fs-5" style="color: #f5d58f;">add</span>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark" style="font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 0.95rem; letter-spacing: -0.01em;">Add New Category</h6>
+                    <small class="text-muted d-block" style="font-size: 0.75rem; font-family: 'Inter', system-ui, -apple-system, sans-serif;">Create a fresh shopping category</small>
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'admin_categories' %}">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark">Category Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">e.g. Smart TVs, Audio & Headphones, Gaming</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark">Icon (Material Symbol)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 p-2">
+                            <span class="material-symbols-outlined fs-5" id="iconLivePreview" style="color: #1e463a;">devices</span>
+                        </span>
+                        {{ form.icon_name }}
+                    </div>
+                    
+                    <!-- Quick Icon Suggestions Chips -->
+                    <div class="mt-2">
+                        <small class="text-muted d-block mb-1" style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;">CLICK TO SELECT ICON:</small>
+                        <div class="d-flex flex-wrap gap-1">
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="devices" style="font-size: 0.72rem;">💻 devices</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="laptop_chromebook" style="font-size: 0.72rem;">💻 laptop</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="phone_iphone" style="font-size: 0.72rem;">📱 phone</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="headphones" style="font-size: 0.72rem;">🎧 audio</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="tv" style="font-size: 0.72rem;">📺 tv</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="watch" style="font-size: 0.72rem;">⌚ watch</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="speaker" style="font-size: 0.72rem;">🔊 sound</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="sports_esports" style="font-size: 0.72rem;">🎮 gaming</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="camera_alt" style="font-size: 0.72rem;">📷 camera</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="electrical_services" style="font-size: 0.72rem;">🔌 accessories</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark">Display Order</label>
+                    {{ form.order }}
+                    <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">Position in storefront navigation menu (e.g. 1 = first)</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark">Description</label>
+                    {{ form.description }}
+                </div>
+
+                <button type="submit" class="btn w-100 fw-bold py-2.5 rounded-3 d-flex align-items-center justify-content-center gap-2 shadow-sm" style="background: #1e463a; color: #ffffff; border: none;" onmouseover="this.style.background='#132e26';" onmouseout="this.style.background='#1e463a';">
+                    <span class="material-symbols-outlined fs-5" style="color: #f5d58f;">add_circle</span>
+                    <span>Create Category</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const iconInput = document.querySelector('input[name="icon_name"]');
+    const iconPreview = document.getElementById('iconLivePreview');
+    const chips = document.querySelectorAll('.icon-chip');
+    const quickFilter = document.getElementById('categoryQuickFilter');
+    const rows = document.querySelectorAll('#categoriesTableBody .cat-row');
+    const countLabel = document.getElementById('filteredCountLabel');
+    const totalCount = rows.length;
+
+    // Live Icon Preview
+    function updatePreview() {
+        if (!iconInput || !iconPreview) return;
+        const val = iconInput.value.trim() || 'devices';
+        iconPreview.textContent = val;
+    }
+
+    if (iconInput) {
+        iconInput.addEventListener('input', updatePreview);
+        updatePreview();
+    }
+
+    chips.forEach(chip => {
+        chip.addEventListener('click', function () {
+            const icon = this.getAttribute('data-icon');
+            if (iconInput) {
+                iconInput.value = icon;
+                updatePreview();
+            }
+        });
+    });
+
+    // Instant Category Filter
+    if (quickFilter) {
+        quickFilter.addEventListener('input', function () {
+            const term = this.value.toLowerCase().trim();
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name') || '';
+                const slug = row.getAttribute('data-slug') || '';
+                if (!term || name.includes(term) || slug.includes(term)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            if (countLabel) {
+                countLabel.textContent = 'Showing ' + visibleCount + ' of ' + totalCount + ' categories';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

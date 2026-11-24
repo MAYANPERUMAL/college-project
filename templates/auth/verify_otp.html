@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - Tech Mart{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-page-wrapper {
+        min-height: calc(100vh - 280px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 16px;
+        background: radial-gradient(circle at 10% 20%, rgba(30, 70, 58, 0.05) 0%, rgba(248, 250, 252, 0.9) 90%);
+    }
+
+    .auth-modern-card {
+        width: 100%;
+        max-width: 560px;
+        background: #ffffff;
+        border-radius: 24px;
+        box-shadow: 0 25px 60px -15px rgba(15, 41, 34, 0.16), 0 0 1px 1px rgba(0, 0, 0, 0.04);
+        overflow: hidden;
+        border: 1px solid rgba(226, 232, 240, 0.85);
+    }
+
+    .auth-modern-card input,
+    .auth-modern-card button,
+    .auth-modern-card .btn,
+    .auth-modern-card label,
+    .auth-modern-card .badge,
+    .auth-modern-card small,
+    .auth-modern-card p,
+    .auth-modern-card a {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    }
+
+    .auth-modern-card .material-symbols-outlined {
+        font-family: 'Material Symbols Outlined' !important;
+        font-weight: normal;
+        font-style: normal;
+        font-size: 24px;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .auth-brand-heading {
+        font-family: var(--tm-font-serif, 'Lora', serif) !important;
+        letter-spacing: -0.02em;
+    }
+
+    .btn-auth-primary {
+        background: #1e463a;
+        color: #ffffff !important;
+        border: none;
+        border-radius: 12px;
+        padding: 13px 20px;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 14px rgba(30, 70, 58, 0.22);
+    }
+
+    .btn-auth-primary:hover {
+        background: #15372d;
+        color: #ffffff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(30, 70, 58, 0.32);
+    }
+
+    .auth-otp-input {
+        letter-spacing: 0.6rem;
+        font-size: 1.85rem !important;
+        border-radius: 14px;
+        border: 2px solid #cbd5e1;
+        background: #f8fafc;
+        transition: all 0.2s ease;
+    }
+
+    .auth-otp-input:focus {
+        border-color: #1e463a !important;
+        background: #ffffff !important;
+        box-shadow: 0 0 0 4px rgba(30, 70, 58, 0.12) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-page-wrapper">
+    <div class="auth-modern-card p-4 p-sm-5 text-center">
+        <div class="mb-4">
+            <div class="d-inline-flex p-3 rounded-circle mb-3" style="background: rgba(30, 70, 58, 0.08); color: #1e463a;">
+                <span class="material-symbols-outlined fs-2">verified_user</span>
+            </div>
+            <h2 class="fw-bold text-dark mb-1 auth-brand-heading" style="font-size: 1.85rem;">{{ title }}</h2>
+            <p class="text-muted small mb-2">
+                We have delivered a 6-digit verification code (OTP) to:
+            </p>
+            <span class="badge bg-light text-dark border px-3 py-2 fs-6 fw-bold font-monospace">
+                📱 {{ target }}
+            </span>
+        </div>
+
+        <!-- Instant Demo Testing Banner -->
+        <div class="p-3 rounded-3 mb-4 border text-start d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: #f0fdf4; border-color: #bbf7d0 !important;">
+            <div class="d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined text-success fs-5">key</span>
+                <div>
+                    <span class="small text-muted d-block" style="font-size: 0.72rem;">DEMO TESTING CODE</span>
+                    <strong class="badge bg-primary fs-6 px-2.5 py-0.5 font-monospace">{{ otp_record.otp_code }}</strong>
+                </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-success py-1 px-3 fw-bold" onclick="fillOtp('{{ otp_record.otp_code }}')" style="font-size: 0.75rem;">
+                ⚡ 1-Click Auto-Fill
+            </button>
+        </div>
+
+        <form method="post" action="">
+            {% csrf_token %}
+
+            <div class="mb-4">
+                <label class="form-label small fw-bold text-muted text-uppercase mb-2">Enter 6-Digit Code</label>
+                {{ form.otp }}
+                {% if form.otp.errors %}
+                <div class="text-danger small mt-2 fw-semibold">{{ form.otp.errors }}</div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-auth-primary w-100 mb-3 fs-6">
+                <span class="d-flex align-items-center justify-content-center gap-2">
+                    <span class="material-symbols-outlined fs-5">check_circle</span>
+                    <span>Verify Code & Continue</span>
+                </span>
+            </button>
+        </form>
+
+        <!-- Resend Timer -->
+        <div class="mt-2 text-muted small">
+            Didn't receive the code? 
+            <span id="timer-box">Resend in <span id="countdown" class="fw-bold text-dark">45</span>s</span>
+            <a href="{% url resend_url_name %}" id="resend-link" class="fw-bold text-decoration-none d-none" style="color: #1e463a;">
+                Resend OTP Now
+            </a>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="small">
+            <a href="{% url 'login' %}" class="text-muted text-decoration-none d-inline-flex align-items-center gap-1">
+                <span class="material-symbols-outlined fs-6">arrow_back</span> Return to Sign In
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function fillOtp(code) {
+    const input = document.getElementById('id_otp');
+    if (input) {
+        input.value = code;
+        input.focus();
+    }
+}
+
+// 45-Second Countdown Timer for Resend OTP
+document.addEventListener('DOMContentLoaded', function () {
+    let timeLeft = 45;
+    const countdownEl = document.getElementById('countdown');
+    const timerBox = document.getElementById('timer-box');
+    const resendLink = document.getElementById('resend-link');
+
+    const interval = setInterval(function () {
+        timeLeft--;
+        if (countdownEl) countdownEl.textContent = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(interval);
+            if (timerBox) timerBox.classList.add('d-none');
+            if (resendLink) resendLink.classList.remove('d-none');
+        }
+    }, 1000);
+});
+</script>
+{% endblock %}

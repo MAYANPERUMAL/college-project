@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Tech Mart - India's Trusted Tech Store | Electronics, Laptops & Audio{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 px-xl-5 my-4">
+    <!-- Hero Banner (Forest Green & Warm Gold Theme) -->
+    <div class="rounded-4 p-4 p-lg-5 text-white position-relative overflow-hidden shadow-sm mb-4" 
+         style="background: linear-gradient(135deg, #102820 0%, #1e463a 50%, #295e4e 100%);">
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <span class="badge bg-warning text-dark fw-bold px-3 py-2 rounded-pill mb-3" style="background-color: #f5d58f !important; color: #1e463a !important;">
+                    ⚡ Republic Day Mega Tech Fest
+                </span>
+                <h1 class="display-5 fw-extrabold mb-3">
+                    Next-Gen Tech.<br><span style="color: #f5d58f;">Unbeatable Indian Deals.</span>
+                </h1>
+                <p class="lead mb-4 text-white-50" style="max-width: 540px;">
+                    Experience official brand warranties, instant bank cashback, 24-hour dispatch, and doorstep PIN verification across 19,000+ pincodes.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="{% url 'product_list' %}" class="btn btn-warning btn-lg fw-bold px-4 rounded-pill shadow-sm">
+                        Explore Catalog
+                    </a>
+                    <a href="{% url 'product_list' %}?deal=1" class="btn btn-outline-light btn-lg fw-semibold px-4 rounded-pill">
+                        View Mega Deals →
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-5 text-center d-none d-lg-block">
+                <div class="p-3 bg-white bg-opacity-10 rounded-4 backdrop-blur border border-white border-opacity-20 shadow-lg">
+                    <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcUX50XUav1JENLiMLIiekKOsJ8cJOc5eA-WMe8wSFDdX_vEhc3V5dJ_Cab16ycqCPQBSdAhwUI6pplDRiKCSriHx9PwSlJRY08Sfy-qmwZIUNCUKi3i6OF13TLZmn50-Uu4p_NvZouQSzbP_VSHMd49gkCVnTKeR12-kytdl0CQ8tAZNL8_3451XgXyns-Pyk4AHVtd_TzGsC852B0vKH8XbsH40OKMmwh4YOm9BX" 
+                         alt="MacBook Air M3" class="img-fluid rounded-3 mb-2" style="max-height: 220px; object-fit: contain;">
+                    <div class="fw-bold fs-5 text-white">Apple MacBook Air M3</div>
+                    <div class="text-warning fw-bold fs-4">₹1,14,900 <small class="text-white-50 text-decoration-line-through fs-6">MRP: ₹1,24,900</small></div>
+                    <span class="badge bg-success-subtle text-success fw-bold px-2 py-1 mt-1">Save ₹10,000 + No Cost EMI</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Highlights Section (Ultra-Modern Premium Showcase) -->
+    <div class="mb-5 tm-cat-section">
+        <div class="d-flex justify-content-between align-items-end mb-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge rounded-pill px-2.5 py-1 text-uppercase fw-bold tm-cat-dept-badge">
+                        Explore Departments
+                    </span>
+                    <span class="text-muted small d-none d-sm-inline">· Handpicked Premium Tech</span>
+                </div>
+                <h4 class="fw-bold mb-0 text-dark" style="font-family: var(--tm-font-serif); font-size: 1.65rem; letter-spacing: -0.015em;">
+                    Shop by Category
+                </h4>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm rounded-circle d-none d-md-inline-flex align-items-center justify-content-center tm-cat-nav-btn" id="cat-scroll-left" aria-label="Previous Categories">
+                    <span class="material-symbols-outlined fs-5">chevron_left</span>
+                </button>
+                <button type="button" class="btn btn-sm rounded-circle d-none d-md-inline-flex align-items-center justify-content-center tm-cat-nav-btn" id="cat-scroll-right" aria-label="Next Categories">
+                    <span class="material-symbols-outlined fs-5">chevron_right</span>
+                </button>
+                <a href="{% url 'product_list' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1 ms-1">
+                    <span>View All</span>
+                    <span class="material-symbols-outlined fs-6">arrow_forward</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Modern Category Showcase Shelf -->
+        <div class="tm-cat-shelf" id="tm-category-shelf">
+            {% for cat in categories %}
+            <a href="{% url 'product_list' %}?category={{ cat.slug }}" class="tm-cat-card" style="--cat-accent: {{ cat.theme_info.accent }}; --cat-glow: {{ cat.theme_info.glow }}; --cat-badge-bg: {{ cat.theme_info.badge_bg }}; --cat-badge-color: {{ cat.theme_info.badge_color }}; --cat-icon-bg: {{ cat.theme_info.icon_bg }};">
+                <div class="tm-cat-tile">
+                    <!-- Dynamic Accent Pill -->
+                    <span class="tm-cat-badge">
+                        {{ cat.theme_info.badge }}
+                    </span>
+
+                    <!-- Glowing Icon Squircle -->
+                    <div class="tm-cat-icon-squircle">
+                        {% if cat.image %}
+                        <img src="{{ cat.image.url }}" alt="{{ cat.name }}" class="tm-cat-img">
+                        {% else %}
+                        <span class="material-symbols-outlined">{{ cat.display_icon }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Category Title -->
+                    <h6 class="tm-cat-title">{{ cat.name }}</h6>
+
+                    <!-- Explore Action Indicator -->
+                    <div class="tm-cat-action">
+                        {% if cat.product_count and cat.product_count > 0 %}
+                        <span>{{ cat.product_count }} Product{{ cat.product_count|pluralize }}</span>
+                        {% else %}
+                        <span>Explore</span>
+                        {% endif %}
+                        <span class="material-symbols-outlined">arrow_forward</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Deal of the Day Section -->
+    {% if deal_products %}
+    <div class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-danger px-2.5 py-1.5 rounded-pill fw-bold">LIMITED TIME</span>
+                <h4 class="fw-bold mb-0">Today's Spotlight Deals</h4>
+            </div>
+            <a href="{% url 'product_list' %}?deal=1" class="text-primary text-decoration-none fw-semibold small">See All Deals →</a>
+        </div>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+            {% for product in deal_products %}
+            <div class="col">
+                <div class="tm-product-card">
+                    <div class="tm-product-img-box">
+                        <span class="tm-badge-deal">{{ product.deal_tag|default:'DEAL' }}</span>
+                        {% if product.discount_percent > 0 %}
+                        <span class="tm-badge-save">{{ product.discount_percent }}% OFF</span>
+                        {% endif %}
+                        <a href="{% url 'product_detail' slug=product.slug %}" class="d-flex align-items-center justify-content-center w-100 h-100">
+                            <img src="{{ product.display_image }}" alt="{{ product.name }}">
+                        </a>
+                    </div>
+                    <div class="p-3 d-flex flex-column flex-grow-1">
+                        <small class="tm-product-brand">{{ product.brand }}</small>
+                        <h6 class="tm-product-title mt-1 mb-2 text-truncate-2" style="min-height: 2.8em;">
+                            <a href="{% url 'product_detail' slug=product.slug %}">
+                                {{ product.name }}
+                            </a>
+                        </h6>
+                        <!-- Rating -->
+                        <div class="d-flex align-items-center gap-1 mb-2 small text-warning">
+                            <span class="badge bg-warning-subtle text-warning-emphasis fw-bold d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                {{ product.rating }}
+                            </span>
+                            <span class="text-muted fw-semibold" style="font-size: 0.75rem;">({{ product.reviews_count }})</span>
+                        </div>
+                        <!-- Price Stack -->
+                        <div class="mt-auto pt-2 border-top">
+                            <div class="d-flex align-items-baseline gap-2">
+                                <span class="tm-price-current">₹{{ product.price|intcomma }}</span>
+                                {% if product.mrp > product.price %}
+                                <span class="tm-price-mrp">₹{{ product.mrp|intcomma }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="small tm-delivery-badge mt-1 d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined fs-6">bolt</span> Free Fast Delivery
+                            </div>
+                            <!-- Add to cart button -->
+                            <form action="{% url 'add_to_cart' product_id=product.id %}" method="post" class="mt-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="btn btn-tm-secondary btn-sm w-100 d-flex align-items-center justify-content-center gap-1">
+                                    <span class="material-symbols-outlined fs-6">add_shopping_cart</span> Add to Cart
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Featured Products Showcase -->
+    <div class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">Featured Consumer Electronics</h4>
+            <a href="{% url 'product_list' %}" class="text-primary text-decoration-none fw-semibold small">Explore All ({{ recent_tech|length }}+) →</a>
+        </div>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+            {% for product in featured_products %}
+            <div class="col">
+                <div class="tm-product-card">
+                    <div class="tm-product-img-box">
+                        {% if product.discount_percent > 0 %}
+                        <span class="tm-badge-save">Save ₹{{ product.savings|intcomma }}</span>
+                        {% endif %}
+                        <a href="{% url 'product_detail' slug=product.slug %}" class="d-flex align-items-center justify-content-center w-100 h-100">
+                            <img src="{{ product.display_image }}" alt="{{ product.name }}">
+                        </a>
+                    </div>
+                    <div class="p-3 d-flex flex-column flex-grow-1">
+                        <small class="tm-product-brand">{{ product.brand }}</small>
+                        <h6 class="tm-product-title mt-1 mb-2 text-truncate-2" style="min-height: 2.8em;">
+                            <a href="{% url 'product_detail' slug=product.slug %}">
+                                {{ product.name }}
+                            </a>
+                        </h6>
+                        <!-- Rating -->
+                        <div class="d-flex align-items-center gap-1 mb-2 small text-warning">
+                            <span class="badge bg-warning-subtle text-warning-emphasis fw-bold d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                {{ product.rating }}
+                            </span>
+                            <span class="text-muted fw-semibold" style="font-size: 0.75rem;">({{ product.reviews_count }} verified)</span>
+                        </div>
+                        <!-- Price Stack -->
+                        <div class="mt-auto pt-2 border-top">
+                            <div class="d-flex align-items-baseline gap-2">
+                                <span class="tm-price-current">₹{{ product.price|intcomma }}</span>
+                                {% if product.mrp > product.price %}
+                                <span class="tm-price-mrp">₹{{ product.mrp|intcomma }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="small text-muted mt-1">EMIs from ₹{{ product.emi_starts_from|intcomma }}/mo</div>
+                            <form action="{% url 'add_to_cart' product_id=product.id %}" method="post" class="mt-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="btn btn-tm-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-1">
+                                    <span class="material-symbols-outlined fs-6">shopping_bag</span> Add to Cart
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Pincode Delivery Checker Box -->
+    <div class="bg-white rounded-4 p-4 border shadow-sm mb-5">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-3 mb-lg-0">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-primary-subtle text-primary p-3 d-flex align-items-center justify-content-center">
+                        <span class="material-symbols-outlined fs-2">local_shipping</span>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-1">Check Delivery Timelines in Your City</h5>
+                        <p class="text-muted small mb-0">Enter your 6-digit postal PIN code to see exact delivery date, express slot availability, and COD eligibility.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">
+                        <span class="material-symbols-outlined fs-5 text-muted">pin_drop</span>
+                    </span>
+                    <input type="text" id="input-pincode" class="form-control" placeholder="Enter 6-digit Pincode (e.g. 641001, 560001)" maxlength="6">
+                    <button class="btn btn-primary fw-semibold px-4" type="button" id="btn-check-pincode">
+                        Check PIN
+                    </button>
+                </div>
+                <div id="pincode-result" class="mt-1"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

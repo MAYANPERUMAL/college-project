@@ -1,0 +1,198 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tax Invoice - {{ order.order_number }} - Tech Mart</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .invoice-box {
+            max-width: 850px;
+            margin: 30px auto;
+            padding: 35px;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+        }
+        @media print {
+            body { background: #ffffff; }
+            .invoice-box { border: none; box-shadow: none; margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container my-3 no-print text-center">
+        <button onclick="window.print()" class="btn btn-primary px-4 fw-semibold me-2">
+            🖨️ Print / Save as PDF
+        </button>
+        <a href="{% url 'order_detail' order_number=order.order_number %}" class="btn btn-outline-secondary">
+            ← Back to Order
+        </a>
+    </div>
+
+    <div class="invoice-box">
+        <!-- Invoice Header -->
+        <div class="row align-items-center mb-4 pb-3 border-bottom">
+            <div class="col-6">
+                <h3 class="fw-bold text-primary mb-0">Tech Mart</h3>
+                <small class="text-muted">India's Trusted Tech Store</small>
+            </div>
+            <div class="col-6 text-end">
+                <h4 class="fw-bold text-dark text-uppercase mb-0">Tax Invoice</h4>
+                <small class="text-muted">(Original for Recipient)</small>
+            </div>
+        </div>
+
+        <!-- Supplier & Buyer Info -->
+        <div class="row mb-4 small">
+            <div class="col-6">
+                <strong class="d-block text-dark">Sold By:</strong>
+                <div>Tech Mart India Private Limited</div>
+                <div>Bhiwandi Central Logistics Park, Warehouse 4B</div>
+                <div>Thane, Maharashtra - 421302</div>
+                <div><strong>GSTIN:</strong> 27AAACT8491Q1ZP</div>
+                <div><strong>PAN:</strong> AAACT8491Q</div>
+                <div><strong>State:</strong> Maharashtra (Code: 27)</div>
+            </div>
+            <div class="col-6 text-end">
+                <strong class="d-block text-dark">Billing & Delivery Address:</strong>
+                <div><strong>{{ order.shipping_name }}</strong></div>
+                <div>{{ order.shipping_address_line1 }}</div>
+                {% if order.shipping_address_line2 %}<div>{{ order.shipping_address_line2 }}</div>{% endif %}
+                <div>{{ order.shipping_city }}, {{ order.shipping_state }} - {{ order.shipping_pincode }}</div>
+                <div>Phone: {{ order.shipping_phone }}</div>
+                {% if order.user.gst_number %}
+                <div><strong>Customer GSTIN:</strong> {{ order.user.gst_number }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Invoice Details Bar -->
+        <div class="p-2 bg-light border rounded-2 mb-4 small">
+            <div class="row text-center">
+                <div class="col-3">
+                    <span class="text-muted d-block">Invoice No:</span>
+                    <strong>INV-{{ order.order_number }}</strong>
+                </div>
+                <div class="col-3">
+                    <span class="text-muted d-block">Invoice Date:</span>
+                    <strong>{{ order.created_at|date:"d M Y" }}</strong>
+                </div>
+                <div class="col-3">
+                    <span class="text-muted d-block">Order ID:</span>
+                    <strong>#{{ order.order_number }}</strong>
+                </div>
+                <div class="col-3">
+                    <span class="text-muted d-block">Payment Method:</span>
+                    <strong>{{ order.get_payment_method_display }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Itemized Table -->
+        <table class="table table-bordered small align-middle mb-4">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 45%;">Description of Goods</th>
+                    <th style="width: 12%;" class="text-center">HSN Code</th>
+                    <th style="width: 8%;" class="text-center">Qty</th>
+                    <th style="width: 15%;" class="text-end">Gross Amount (₹)</th>
+                    <th style="width: 15%;" class="text-end">Total Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <strong>{{ item.product_name }}</strong>
+                        {% if item.model_number %}
+                        <div class="text-muted small">Model: {{ item.model_number }}</div>
+                        {% endif %}
+                        <div class="text-muted small">Warranty: {{ item.warranty_info }}</div>
+                    </td>
+                    <td class="text-center">84713010</td>
+                    <td class="text-center">{{ item.quantity }}</td>
+                    <td class="text-end">₹{{ item.line_total|intcomma }}</td>
+                    <td class="text-end fw-bold">₹{{ item.line_total|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Tax Breakdown Table -->
+        <div class="row mb-4">
+            <div class="col-6 small">
+                <strong>Tax Breakdown (GST @ 18%):</strong>
+                <table class="table table-sm table-bordered mt-1">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tax Type</th>
+                            <th>Rate</th>
+                            <th class="text-end">Tax Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Central GST (CGST)</td>
+                            <td>9%</td>
+                            <td class="text-end">₹{{ cgst|intcomma }}</td>
+                        </tr>
+                        <tr>
+                            <td>State GST (SGST)</td>
+                            <td>9%</td>
+                            <td class="text-end">₹{{ sgst|intcomma }}</td>
+                        </tr>
+                        <tr class="fw-bold">
+                            <td colspan="2">Total Tax Component</td>
+                            <td class="text-end">₹{{ order.gst_amount|intcomma }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-6 small">
+                <div class="p-3 bg-light border rounded">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Items Subtotal:</span>
+                        <span>₹{{ order.subtotal|intcomma }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Delivery Charges:</span>
+                        <span class="text-success fw-bold">FREE</span>
+                    </div>
+                    <hr class="my-2">
+                    <div class="d-flex justify-content-between fw-bold fs-6">
+                        <span>Invoice Total:</span>
+                        <span class="text-primary">₹{{ order.total_amount|intcomma }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer / Certification -->
+        <div class="row pt-3 border-top small text-muted">
+            <div class="col-8">
+                <strong>Terms & Conditions:</strong>
+                <div>1. All goods sold are covered by official manufacturer warranties across India.</div>
+                <div>2. Replacement window is 7 days from the verified doorstep handover date.</div>
+                <div>3. This is a computer generated invoice and requires no physical signature.</div>
+            </div>
+            <div class="col-4 text-end">
+                <div class="mb-4">For <strong>Tech Mart India Pvt Ltd</strong></div>
+                <div class="fw-bold mt-4">Authorized Signatory</div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

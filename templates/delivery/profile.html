@@ -1,0 +1,451 @@
+{% extends 'delivery/base_delivery.html' %}
+{% load humanize %}
+
+{% block title %}Partner Profile - Delivery Portal{% endblock %}
+{% block header_title %}Partner Profile & Vehicle Settings{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Profile Form -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                <span class="material-symbols-outlined text-primary fs-5">badge</span>
+                <h6 class="mb-0 fw-bold text-dark">Delivery Partner Details</h6>
+            </div>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_profile">
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">First Name</label>
+                        {{ form.first_name }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Last Name</label>
+                        {{ form.last_name }}
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Registered Phone Number</label>
+                        {{ form.phone }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Email Address</label>
+                        {{ form.email }}
+                    </div>
+                </div>
+
+                <hr class="my-3 text-muted">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="material-symbols-outlined text-primary fs-5">two_wheeler</span>
+                    <h6 class="mb-0 fw-bold text-dark">Vehicle & City Operations</h6>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Vehicle Type</label>
+                        {{ form.vehicle_type }}
+                        <small class="text-muted d-block mt-1">e.g. Motorcycle, EV, Van</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Vehicle Registration Number</label>
+                        {{ form.vehicle_number }}
+                        <small class="text-muted d-block mt-1">e.g. TN-38-BH-9821</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Operating City / Region</label>
+                        {{ form.current_city }}
+                    </div>
+                </div>
+
+                <div class="form-check form-switch p-3 bg-light rounded-3 mb-4">
+                    {{ form.is_available }}
+                    <label class="form-check-label fw-bold text-dark ms-2" for="{{ form.is_available.id_for_label }}">
+                        Active for Immediate Delivery Assignment
+                    </label>
+                    <small class="text-muted d-block ms-2">When checked, store managers can assign pending customer packages to you.</small>
+                </div>
+
+                <!-- Theme Appearance Preference -->
+                <div class="mb-4">
+                    <label class="form-label small fw-semibold text-dark d-flex align-items-center gap-1.5 mb-2">
+                        <span class="material-symbols-outlined fs-5 text-primary">palette</span>
+                        <span>Theme Appearance Mode</span>
+                    </label>
+                    <div class="row g-2 mb-2">
+                        <div class="col-4">
+                            <div class="theme-choice-card text-center h-100 {% if user.theme_preference == 'light' %}active{% endif %}" data-theme="light">
+                                <div class="theme-check-badge"><span class="material-symbols-outlined" style="font-size: 13px;">check</span></div>
+                                <div class="theme-choice-icon mx-auto bg-warning-subtle text-warning-emphasis">
+                                    <span class="material-symbols-outlined fs-4">light_mode</span>
+                                </div>
+                                <strong class="d-block small text-dark mb-0.5">Light Mode</strong>
+                                <span class="text-muted d-none d-sm-block" style="font-size: 0.7rem;">Crisp, bright daylight view</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="theme-choice-card text-center h-100 {% if user.theme_preference == 'dark' %}active{% endif %}" data-theme="dark">
+                                <div class="theme-check-badge"><span class="material-symbols-outlined" style="font-size: 13px;">check</span></div>
+                                <div class="theme-choice-icon mx-auto bg-primary-subtle text-primary">
+                                    <span class="material-symbols-outlined fs-4">dark_mode</span>
+                                </div>
+                                <strong class="d-block small text-dark mb-0.5">Dark Mode</strong>
+                                <span class="text-muted d-none d-sm-block" style="font-size: 0.7rem;">Comfortable evening contrast</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="theme-choice-card text-center h-100 {% if user.theme_preference == 'system' or not user.theme_preference %}active{% endif %}" data-theme="system">
+                                <div class="theme-check-badge"><span class="material-symbols-outlined" style="font-size: 13px;">check</span></div>
+                                <div class="theme-choice-icon mx-auto bg-secondary-subtle text-secondary">
+                                    <span class="material-symbols-outlined fs-4">brightness_auto</span>
+                                </div>
+                                <strong class="d-block small text-dark mb-0.5">System Sync</strong>
+                                <span class="text-muted d-none d-sm-block" style="font-size: 0.7rem;">Auto-adjusts with device OS</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-none">
+                        {{ form.theme_preference }}
+                    </div>
+                    <small class="text-muted" style="font-size: 0.72rem;">Choose your preferred display theme for the Delivery Partner Portal.</small>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{% url 'logout' %}" class="btn btn-outline-danger fw-semibold px-3 py-2 rounded-3 shadow-sm d-inline-flex align-items-center gap-1" title="Log Out">
+                        <span class="material-symbols-outlined fs-6">logout</span>
+                        <span>Log Out</span>
+                    </a>
+                    <button type="submit" class="btn btn-primary fw-bold px-4 py-2 rounded-3 shadow-sm">
+                        Save Profile Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Stats Card -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mb-4 text-center">
+            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold mx-auto mb-3 shadow-sm" style="width: 72px; height: 72px; background: #2563eb; font-size: 1.75rem;">
+                {{ partner.first_name|default:partner.username|slice:":1"|upper }}
+            </div>
+            <h5 class="fw-bold text-dark mb-0">{{ partner.get_full_name|default:partner.username }}</h5>
+            <span class="badge bg-primary-subtle text-primary mt-1 px-3 py-1 rounded-pill">
+                Verified Delivery Partner
+            </span>
+            <div class="text-muted small mt-2">Partner ID: DP-{{ partner.id|stringformat:"04d" }}</div>
+            <div class="text-muted small">Joined: {{ partner.date_joined|date:"M Y" }}</div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+            <h6 class="fw-bold text-dark mb-3">Performance Overview</h6>
+            <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                <span class="text-muted small">Completed Deliveries</span>
+                <span class="fw-bold text-success fs-6">{{ total_delivered }}</span>
+            </div>
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="text-muted small">Currently In-Transit</span>
+                <span class="fw-bold text-primary fs-6">{{ active_count }}</span>
+            </div>
+        </div>
+
+        <!-- Delivery Partner Password Change Card -->
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mt-3">
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                <span class="material-symbols-outlined text-primary fs-5">lock_reset</span>
+                <h6 class="mb-0 fw-bold text-dark">Change Password</h6>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="change_password">
+                {% if pwd_form.errors %}
+                <div class="alert alert-danger py-1 px-2 small mb-2">
+                    <ul class="mb-0 ps-3">
+                        {% for field in pwd_form %}
+                            {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label small fw-semibold text-muted mb-0">Current Password</label>
+                        <a href="javascript:void(0)" onclick="openResetPasswordModal()" class="small text-primary text-decoration-none fw-semibold d-inline-flex align-items-center gap-1" style="font-size: 0.76rem;" title="Forgot password? Reset via Mobile OTP">
+                            <span class="material-symbols-outlined" style="font-size: 0.95rem;">lock_reset</span>
+                            <span>Forgot Password?</span>
+                        </a>
+                    </div>
+                    {{ pwd_form.current_password }}
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold text-muted mb-1">New Password</label>
+                    {{ pwd_form.new_password }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted mb-1">Confirm New Password</label>
+                    {{ pwd_form.confirm_password }}
+                </div>
+                <button type="submit" class="btn btn-outline-primary btn-sm fw-bold w-100 py-1.5 rounded-3">
+                    Update Password
+                </button>
+                <div class="text-center mt-2 pt-2 border-top">
+                    <a href="javascript:void(0)" onclick="openResetPasswordModal()" class="small text-muted text-decoration-none d-inline-flex align-items-center gap-1 hover-underline">
+                        <span class="material-symbols-outlined fs-6 text-primary">key</span>
+                        <span>Forgot current password? <strong class="text-primary">Reset with Mobile OTP</strong></span>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Reset Password via Mobile OTP -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header border-0 pb-0 pt-4 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-circle" style="background: rgba(30, 70, 58, 0.1); color: #1e463a;">
+                        <span class="material-symbols-outlined fs-5">lock_reset</span>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0" id="resetPasswordModalLabel">Reset Partner Password</h5>
+                        <small class="text-muted" style="font-size: 0.78rem;">Verify with Registered Mobile OTP</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Alert Feedback Box -->
+                <div id="resetModalAlert" class="alert d-none py-2 px-3 small rounded-3 mb-3"></div>
+
+                <!-- Step 1: Mobile verification -->
+                <div id="resetStepPhone">
+                    <p class="text-muted small mb-3">
+                        We will send a 6-digit verification code to your registered delivery partner mobile number:
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Registered Mobile Number</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light fw-bold text-muted">+91</span>
+                            <input type="tel" id="resetPhoneInput" class="form-control fw-bold" value="{{ user.phone|default:'' }}" placeholder="10-digit mobile number" maxlength="10">
+                        </div>
+                        <div class="form-text text-muted small" style="font-size: 0.72rem;">Delivery Partner: <strong>{{ user.get_full_name|default:user.username }}</strong></div>
+                    </div>
+                    <button type="button" class="btn btn-primary fw-bold w-100 py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2" id="btnSendResetOtp" onclick="sendResetOtp()">
+                        <span class="material-symbols-outlined fs-5">send</span>
+                        <span>Send Verification OTP</span>
+                    </button>
+                </div>
+
+                <!-- Step 2: OTP & New Password -->
+                <div id="resetStepVerify" class="d-none">
+                    <!-- Demo OTP Banner -->
+                    <div class="alert alert-success py-2 px-3 small border-success d-flex align-items-center justify-content-between mb-3 rounded-3">
+                        <div>
+                            <div class="fw-bold text-success">Code sent to +91 <span id="resetDisplayPhone"></span></div>
+                            <div class="text-muted small" style="font-size: 0.74rem;">Demo OTP: <strong class="badge bg-primary px-2 font-monospace" id="resetOtpBadge">------</strong></div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-success py-1 px-2.5 fw-bold" onclick="autoFillResetOtp()">Auto-Fill</button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Enter 6-Digit OTP</label>
+                        <input type="text" id="resetOtpInput" class="form-control text-center font-monospace fw-bold fs-5" placeholder="• • • • • •" maxlength="6" autocomplete="one-time-code" style="letter-spacing: 0.35rem;">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">New Password</label>
+                        <div class="input-group">
+                            <input type="password" id="resetNewPassword" class="form-control" placeholder="At least 6 characters" autocomplete="new-password">
+                            <button type="button" class="btn btn-outline-secondary" onclick="toggleResetPwd('resetNewPassword', this)">
+                                <span class="material-symbols-outlined fs-6">visibility</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">Confirm New Password</label>
+                        <div class="input-group">
+                            <input type="password" id="resetConfirmPassword" class="form-control" placeholder="Re-enter new password" autocomplete="new-password">
+                            <button type="button" class="btn btn-outline-secondary" onclick="toggleResetPwd('resetConfirmPassword', this)">
+                                <span class="material-symbols-outlined fs-6">visibility</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-primary fw-bold w-100 py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2 mb-2" id="btnSubmitResetPwd" onclick="submitResetPassword()">
+                        <span class="material-symbols-outlined fs-5">check_circle</span>
+                        <span>Reset & Update Password</span>
+                    </button>
+
+                    <div class="d-flex justify-content-between align-items-center pt-2">
+                        <button type="button" class="btn btn-link btn-sm text-muted p-0 text-decoration-none" onclick="backToResetPhone()">
+                            ← Change Mobile
+                        </button>
+                        <button type="button" class="btn btn-link btn-sm text-primary p-0 fw-semibold text-decoration-none" id="btnResendResetOtp" onclick="sendResetOtp()">
+                            Resend Code
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentDemoOtp = '';
+
+function getCsrfToken() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (el) return el.value;
+    const cookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+    return cookie ? cookie.split('=')[1] : '';
+}
+
+function openResetPasswordModal() {
+    const modalEl = document.getElementById('resetPasswordModal');
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    document.getElementById('resetModalAlert').classList.add('d-none');
+    document.getElementById('resetStepPhone').classList.remove('d-none');
+    document.getElementById('resetStepVerify').classList.add('d-none');
+    modal.show();
+}
+
+function showModalAlert(msg, type = 'danger') {
+    const alertBox = document.getElementById('resetModalAlert');
+    alertBox.className = `alert alert-${type} py-2 px-3 small rounded-3 mb-3`;
+    alertBox.textContent = msg;
+    alertBox.classList.remove('d-none');
+}
+
+function sendResetOtp() {
+    const phoneInput = document.getElementById('resetPhoneInput');
+    const phone = phoneInput.value.trim().replace(/\D/g, '');
+    const btn = document.getElementById('btnSendResetOtp');
+
+    if (phone.length !== 10) {
+        showModalAlert('Please enter a valid 10-digit mobile number.', 'danger');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sending OTP...';
+
+    fetch("{% url 'api_send_password_reset_otp' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ phone: phone })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined fs-5">send</span><span>Send Verification OTP</span>';
+        if (data.success) {
+            currentDemoOtp = data.otp;
+            document.getElementById('resetDisplayPhone').textContent = phone;
+            document.getElementById('resetOtpBadge').textContent = data.otp;
+            document.getElementById('resetStepPhone').classList.add('d-none');
+            document.getElementById('resetStepVerify').classList.remove('d-none');
+            document.getElementById('resetModalAlert').classList.add('d-none');
+            document.getElementById('resetOtpInput').focus();
+        } else {
+            showModalAlert(data.message || 'Failed to send OTP.', 'danger');
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined fs-5">send</span><span>Send Verification OTP</span>';
+        showModalAlert('Network error occurred. Please try again.', 'danger');
+    });
+}
+
+function autoFillResetOtp() {
+    if (currentDemoOtp) {
+        document.getElementById('resetOtpInput').value = currentDemoOtp;
+    }
+}
+
+function backToResetPhone() {
+    document.getElementById('resetStepVerify').classList.add('d-none');
+    document.getElementById('resetStepPhone').classList.remove('d-none');
+    document.getElementById('resetModalAlert').classList.add('d-none');
+}
+
+function toggleResetPwd(fieldId, btn) {
+    const field = document.getElementById(fieldId);
+    const icon = btn.querySelector('.material-symbols-outlined');
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.textContent = 'visibility_off';
+    } else {
+        field.type = 'password';
+        icon.textContent = 'visibility';
+    }
+}
+
+function submitResetPassword() {
+    const phone = document.getElementById('resetPhoneInput').value.trim().replace(/\D/g, '');
+    const otp = document.getElementById('resetOtpInput').value.trim();
+    const newPwd = document.getElementById('resetNewPassword').value;
+    const confPwd = document.getElementById('resetConfirmPassword').value;
+    const btn = document.getElementById('btnSubmitResetPwd');
+
+    if (!otp || otp.length !== 6) {
+        showModalAlert('Please enter the 6-digit OTP code.', 'danger');
+        return;
+    }
+    if (!newPwd || newPwd.length < 6) {
+        showModalAlert('New password must be at least 6 characters.', 'danger');
+        return;
+    }
+    if (newPwd !== confPwd) {
+        showModalAlert('New password and confirmation do not match.', 'danger');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Updating Password...';
+
+    fetch("{% url 'api_reset_password_otp' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+            phone: phone,
+            otp: otp,
+            new_password: newPwd,
+            confirm_password: confPwd
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined fs-5">check_circle</span><span>Reset & Update Password</span>';
+        if (data.success) {
+            showModalAlert(data.message, 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1200);
+        } else {
+            showModalAlert(data.message || 'Failed to reset password.', 'danger');
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined fs-5">check_circle</span><span>Reset & Update Password</span>';
+        showModalAlert('Network error occurred. Please try again.', 'danger');
+    });
+}
+</script>
+{% endblock %}

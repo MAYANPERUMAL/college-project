@@ -1,0 +1,287 @@
+{% extends 'seller/base_seller.html' %}
+{% load humanize %}
+
+{% block title %}My Customer Orders - Tech Mart Seller{% endblock %}
+
+{% block seller_content %}
+<style>
+.seller-orders-scroll {
+    min-height: 500px;
+    max-height: 650px;
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    scrollbar-width: thin;
+    scrollbar-color: #059669 #f1f5f9;
+    -webkit-overflow-scrolling: touch;
+    border-bottom: 2px solid #e2e8f0;
+}
+.seller-orders-scroll::-webkit-scrollbar {
+    width: 12px; /* Prominent top-to-bottom vertical scrollbar */
+    height: 12px; /* Prominent horizontal scrollbar */
+}
+.seller-orders-scroll::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+.seller-orders-scroll::-webkit-scrollbar-thumb {
+    background: #059669;
+    border-radius: 8px;
+    border: 2px solid #f8fafc;
+}
+.seller-orders-scroll::-webkit-scrollbar-thumb:hover {
+    background: #047857;
+}
+.seller-orders-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background-color: #f8fafc !important;
+    box-shadow: inset 0 -1px 0 #e2e8f0;
+    white-space: nowrap;
+}
+.scroll-btn-ctrl {
+    transition: all 0.2s ease-in-out;
+}
+.scroll-btn-ctrl:hover {
+    background-color: #059669 !important;
+    color: white !important;
+    border-color: #059669 !important;
+}
+</style>
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold mb-1">My Customer Orders ({{ total_orders }})</h3>
+        <p class="text-muted small mb-0">Showing only orders that contain products sold by your store. Review line items and dispatch status.</p>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="card border rounded-4 p-3 shadow-sm bg-white mb-4">
+    <form method="get" action="{% url 'seller_orders' %}" class="row g-2 align-items-center">
+        <!-- Search input -->
+        <div class="col-md-5">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                    <span class="material-symbols-outlined fs-5 text-muted">search</span>
+                </span>
+                <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Search order #, customer name or phone..." value="{{ search_q }}">
+            </div>
+        </div>
+
+        <!-- Order Status filter -->
+        <div class="col-md-3">
+            <select name="status" class="form-select" onchange="this.form.submit()">
+                <option value="">All Fulfillment Statuses</option>
+                <option value="CONFIRMED" {% if status_filter == 'CONFIRMED' %}selected{% endif %}>Confirmed</option>
+                <option value="PACKED" {% if status_filter == 'PACKED' %}selected{% endif %}>Packed & Sealed</option>
+                <option value="IN_TRANSIT" {% if status_filter == 'IN_TRANSIT' %}selected{% endif %}>In Transit</option>
+                <option value="OUT_FOR_DELIVERY" {% if status_filter == 'OUT_FOR_DELIVERY' %}selected{% endif %}>Out for Delivery</option>
+                <option value="DELIVERED" {% if status_filter == 'DELIVERED' %}selected{% endif %}>Delivered</option>
+                <option value="CANCELLED" {% if status_filter == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+            </select>
+        </div>
+
+        <!-- Payment filter -->
+        <div class="col-md-3">
+            <select name="payment" class="form-select" onchange="this.form.submit()">
+                <option value="">All Payment Statuses</option>
+                <option value="PAID" {% if pay_filter == 'PAID' %}selected{% endif %}>Paid</option>
+                <option value="PENDING" {% if pay_filter == 'PENDING' %}selected{% endif %}>Pending</option>
+                <option value="FAILED" {% if pay_filter == 'FAILED' %}selected{% endif %}>Failed</option>
+                <option value="REFUNDED" {% if pay_filter == 'REFUNDED' %}selected{% endif %}>Refunded</option>
+            </select>
+        </div>
+
+        <!-- Go / Reset -->
+        <div class="col-md-1 d-flex gap-1">
+            <button type="submit" class="btn text-white w-100 fw-semibold shadow-sm" style="background-color: #059669; border-color: #059669;" onmouseover="this.style.backgroundColor='#047857'; this.style.borderColor='#047857';" onmouseout="this.style.backgroundColor='#059669'; this.style.borderColor='#059669';" title="Search">Go</button>
+            {% if search_q or status_filter or pay_filter %}
+            <a href="{% url 'seller_orders' %}" class="btn btn-outline-secondary" title="Reset Filters">&times;</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Orders Table (Scrollable Container) -->
+<form method="post" action="{% url 'seller_bulk_delete_orders' %}" id="ordersBulkForm">
+{% csrf_token %}
+<input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+<div class="card border rounded-4 shadow-sm bg-white overflow-hidden mb-4">
+    <!-- Header with Scroll Option & Bulk Delete Controls -->
+    <div class="card-header bg-white py-3 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-pill d-inline-flex align-items-center gap-1.5 fw-semibold" style="font-size: 0.78rem;">
+                <span class="material-symbols-outlined fs-6">swap_horiz</span> Scrollable Orders View
+            </span>
+            <span class="text-muted small">Select orders using checkboxes to delete or review complete details</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap ms-auto">
+            <!-- Dynamic Bulk Delete Button (Visible when orders checked) -->
+            <div id="bulkOrdersActions" class="d-none align-items-center gap-2">
+                <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 small fw-semibold" id="selectedOrdersCount">0 Selected</span>
+                <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1 shadow-sm" onclick="return confirm('Are you sure you want to delete all selected orders? This action cannot be undone.');">
+                    <span class="material-symbols-outlined fs-6">delete</span> Delete Selected
+                </button>
+            </div>
+
+            <div class="scroll-pill-group" title="Scroll through seller orders">
+                <span class="text-muted small fw-bold px-1" style="font-size: 0.72rem;">Scroll:</span>
+                <button type="button" class="scroll-pill-btn" onclick="document.getElementById('sellerOrdersContainer').scrollBy({left: -240, behavior: 'smooth'})" title="Scroll Left">
+                    <span class="material-symbols-outlined">chevron_left</span> <span class="small fw-semibold">Left</span>
+                </button>
+                <button type="button" class="scroll-pill-btn" onclick="document.getElementById('sellerOrdersContainer').scrollBy({left: 240, behavior: 'smooth'})" title="Scroll Right">
+                    <span class="small fw-semibold">Right</span> <span class="material-symbols-outlined">chevron_right</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive seller-orders-scroll" id="sellerOrdersContainer">
+        <table class="table align-middle table-hover mb-0" style="min-width: 1120px;">
+            <thead class="table-light small text-uppercase text-muted">
+                <tr>
+                    <th style="width: 4%; min-width: 48px;" class="ps-3 text-center">
+                        <input type="checkbox" id="selectAllOrders" class="form-check-input" style="cursor: pointer;" title="Select All Orders">
+                    </th>
+                    <th style="min-width: 160px;">Order # / Date</th>
+                    <th style="min-width: 220px;">Customer & Shipping</th>
+                    <th style="min-width: 250px;">My Items in Order</th>
+                    <th style="min-width: 150px;">My Payout</th>
+                    <th style="min-width: 130px;">Status</th>
+                    <th style="min-width: 150px;" class="text-end pe-3">Action</th>
+                </tr>
+            </thead>
+            <tbody class="small">
+                {% for row in orders_data %}
+                <tr>
+                    <td class="ps-3 text-center">
+                        <input type="checkbox" name="order_numbers" value="{{ row.order.order_number }}" class="form-check-input order-row-check" style="cursor: pointer;">
+                    </td>
+                    <td>
+                        <a href="{% url 'seller_order_detail' order_number=row.order.order_number %}" class="fw-bold text-dark text-decoration-none d-block">
+                            #{{ row.order.order_number }}
+                        </a>
+                        <small class="text-muted">{{ row.order.created_at|date:"d M Y, h:i A" }}</small>
+                    </td>
+                    <td>
+                        <strong class="d-block text-dark">{{ row.order.shipping_name }}</strong>
+                        <div class="text-muted" style="font-size: 0.75rem;">
+                            {{ row.order.shipping_city }}, {{ row.order.shipping_state }}
+                            {% if row.order.shipping_pincode %}- {{ row.order.shipping_pincode }}{% endif %}
+                        </div>
+                        <div class="text-muted" style="font-size: 0.72rem;">
+                            <span class="material-symbols-outlined align-middle" style="font-size: 0.85rem;">call</span> {{ row.order.shipping_phone }}
+                        </div>
+                    </td>
+                    <td>
+                        <ul class="list-unstyled mb-0">
+                            {% for item in row.seller_items %}
+                            <li class="d-flex align-items-center justify-content-between py-1 border-bottom border-light">
+                                <span class="text-truncate me-2" style="max-width: 260px;" title="{{ item.product_name }}">
+                                    <strong>{{ item.quantity }}x</strong> {{ item.product_name }}
+                                </span>
+                                <span class="fw-semibold text-muted">₹{{ item.line_total|intcomma }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>
+                        <div class="fw-bold fs-6 text-success">₹{{ row.seller_subtotal|intcomma }}</div>
+                        <span class="badge {% if row.order.payment_status == 'PAID' %}bg-success-subtle text-success{% elif row.order.payment_status == 'REFUNDED' %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning-emphasis{% endif %}" style="font-size: 0.68rem;">
+                            {{ row.order.get_payment_status_display }}
+                        </span>
+                        <div class="text-muted" style="font-size: 0.70rem;">{{ row.order.get_payment_method_display }}</div>
+                    </td>
+                    <td>
+                        <span class="badge {% if row.order.order_status == 'DELIVERED' %}bg-success{% elif row.order.order_status == 'CANCELLED' %}bg-danger{% elif row.order.order_status == 'OUT_FOR_DELIVERY' %}bg-info text-dark{% elif row.order.order_status == 'IN_TRANSIT' %}bg-primary{% else %}bg-secondary{% endif %}">
+                            {{ row.order.get_order_status_display }}
+                        </span>
+                    </td>
+                    <td class="text-end pe-3">
+                        <div class="d-inline-flex align-items-center gap-1.5 justify-content-end">
+                            <a href="{% url 'seller_order_detail' order_number=row.order.order_number %}" class="btn btn-sm btn-outline-success fw-semibold px-2.5 py-1" title="View Order Details">
+                                View Details
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger p-1 d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px; border-radius: 8px;" title="Delete Order #{{ row.order.order_number }}" onclick="deleteSingleOrder('{{ row.order.order_number }}')">
+                                <span class="material-symbols-outlined" style="font-size: 1rem;">delete</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted" style="height: 420px; vertical-align: middle;">
+                        <span class="material-symbols-outlined fs-1 text-muted d-block mb-2">receipt_long</span>
+                        <h5>No Orders Found</h5>
+                        <p class="small text-muted mb-0">No customer orders matching this filter contain products from your store catalog.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <!-- Scroll Indicator Footer Bar -->
+    <div class="px-3 py-1.5 bg-light border-top d-flex justify-content-between align-items-center small text-muted" style="font-size: 0.72rem;">
+        <span class="d-flex align-items-center gap-1">
+            <span class="material-symbols-outlined" style="font-size: 0.95rem; color: #059669;">swap_horiz</span>
+            <span>Scroll horizontally or use buttons to view all columns</span>
+        </span>
+        <span>Showing {{ orders_data|length }} Order{{ orders_data|length|pluralize }}</span>
+    </div>
+</div>
+</form>
+
+<!-- Hidden Form for Single Order Delete -->
+<form id="singleOrderDeleteForm" method="post" action="" class="d-none">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.getElementById('selectAllOrders');
+    const rowChecks = document.querySelectorAll('.order-row-check');
+    const bulkBar = document.getElementById('bulkOrdersActions');
+    const countLabel = document.getElementById('selectedOrdersCount');
+
+    function updateBulkOrdersState() {
+        let count = 0;
+        rowChecks.forEach(cb => {
+            if (cb.checked) count++;
+        });
+        if (count > 0) {
+            bulkBar.classList.remove('d-none');
+            bulkBar.classList.add('d-flex');
+            countLabel.textContent = count + ' Selected';
+        } else {
+            bulkBar.classList.add('d-none');
+            bulkBar.classList.remove('d-flex');
+        }
+        if (selectAll) {
+            selectAll.checked = (count === rowChecks.length && rowChecks.length > 0);
+        }
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            rowChecks.forEach(cb => { cb.checked = selectAll.checked; });
+            updateBulkOrdersState();
+        });
+    }
+
+    rowChecks.forEach(cb => {
+        cb.addEventListener('change', updateBulkOrdersState);
+    });
+});
+
+function deleteSingleOrder(orderNumber) {
+    if (confirm('Are you sure you want to delete order #' + orderNumber + '? This action cannot be undone.')) {
+        const form = document.getElementById('singleOrderDeleteForm');
+        form.action = '/seller-dashboard/orders/' + encodeURIComponent(orderNumber) + '/delete/';
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,423 @@
+{% extends 'admin/base_admin.html' %}
+{% load humanize %}
+
+{% block title %}Seller Details — {{ seller.display_store_name }} - Tech Mart Admin{% endblock %}
+
+{% block admin_content %}
+<style>
+.seller-stat-card {
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.05);
+}
+.info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.info-row:last-child { border-bottom: none; }
+.info-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    min-width: 150px;
+    flex-shrink: 0;
+}
+.info-value {
+    font-size: 0.88rem;
+    color: #0f172a;
+    font-weight: 500;
+}
+.seller-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    font-size: 1.75rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #059669, #10b981);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(5,150,105,0.25);
+}
+.section-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f1f5f9;
+    margin-bottom: 1rem;
+}
+</style>
+
+<!-- Breadcrumb Back -->
+<div class="d-flex align-items-center gap-2 mb-4">
+    <a href="{% url 'admin_customers' %}?role=SELLER" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
+        <span class="material-symbols-outlined fs-6">arrow_back</span>
+        <span>Seller Accounts</span>
+    </a>
+    <span class="text-muted small">/</span>
+    <span class="small fw-semibold text-dark">{{ seller.display_store_name }}</span>
+</div>
+
+<!-- Seller Profile Header -->
+<div class="card border rounded-4 shadow-sm bg-white p-4 mb-4">
+    <div class="d-flex flex-column flex-md-row align-items-md-center gap-4">
+
+        <!-- Avatar -->
+        <div class="seller-avatar">
+            {% if seller.profile_image %}
+            <img src="{{ seller.profile_image.url }}" alt="{{ seller.display_store_name }}" class="rounded-3" style="width:64px;height:64px;object-fit:cover;">
+            {% else %}
+            {{ seller.first_name|default:seller.username|slice:":1"|upper }}
+            {% endif %}
+        </div>
+
+        <!-- Identity -->
+        <div class="flex-grow-1">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <h4 class="fw-bold mb-0 text-dark">{{ seller.display_store_name }}</h4>
+                <span class="badge bg-success text-white fw-bold d-inline-flex align-items-center gap-1">
+                    <span class="material-symbols-outlined" style="font-size:13px;">storefront</span> SELLER
+                </span>
+                {% if seller.is_active %}
+                <span class="badge bg-success-subtle text-success fw-bold">Active</span>
+                {% else %}
+                <span class="badge bg-danger-subtle text-danger fw-bold">Suspended</span>
+                {% endif %}
+                {% if seller.gst_number %}
+                <span class="badge bg-primary-subtle text-primary fw-semibold" style="font-size:0.68rem;">GST Registered</span>
+                {% endif %}
+            </div>
+            <p class="text-muted small mb-2">@{{ seller.username }} &nbsp;•&nbsp; Joined {{ seller.date_joined|date:"d M Y" }}</p>
+            {% if seller.seller_bio %}
+            <p class="text-secondary small mb-0" style="font-size:0.82rem;">{{ seller.seller_bio }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="d-flex flex-column gap-2">
+            <form action="{% url 'admin_customer_toggle_status' pk=seller.id %}" method="post" class="d-inline"
+                  onsubmit="return confirm('Change status for {{ seller.username }}?');">
+                {% csrf_token %}
+                {% if seller.is_active %}
+                <button type="submit" class="btn btn-sm btn-outline-warning fw-semibold d-flex align-items-center gap-1">
+                    <span class="material-symbols-outlined fs-6">block</span> Suspend Seller
+                </button>
+                {% else %}
+                <button type="submit" class="btn btn-sm btn-outline-success fw-semibold d-flex align-items-center gap-1">
+                    <span class="material-symbols-outlined fs-6">check_circle</span> Activate Seller
+                </button>
+                {% endif %}
+            </form>
+            <form action="{% url 'admin_user_toggle_role' pk=seller.id %}" method="post" class="d-inline"
+                  onsubmit="return confirm('Revert {{ seller.username }} to Customer role? They will lose Seller privileges.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-secondary fw-semibold d-flex align-items-center gap-1">
+                    <span class="material-symbols-outlined fs-6">person</span> Revert to Customer
+                </button>
+            </form>
+            <form action="{% url 'admin_customer_delete' pk=seller.id %}" method="post" class="d-inline"
+                  onsubmit="return confirm('Permanently delete seller @{{ seller.username }}? This cannot be undone.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger fw-semibold d-flex align-items-center gap-1">
+                    <span class="material-symbols-outlined fs-6">delete</span> Delete Account
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Direct Seller Portal Management Actions -->
+<div class="card border rounded-4 shadow-sm p-3 mb-4" style="background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%); border-color: #bbf7d0 !important;">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined text-success fs-5">admin_panel_settings</span>
+                <span class="fw-bold text-dark fs-6">Direct Seller Portal Management</span>
+                <span class="badge bg-success-subtle text-success fw-semibold">Live Access</span>
+            </div>
+            <p class="text-muted small mb-0 mt-0.5">Switch into {{ seller.display_store_name }}'s portal to access dashboard, products, categories, and orders directly.</p>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="{% url 'admin_login_as_seller' pk=seller.id %}?action=dashboard" class="btn btn-outline-success btn-sm fw-semibold d-inline-flex align-items-center gap-1 shadow-sm">
+                <span class="material-symbols-outlined" style="font-size: 1.05rem;">dashboard</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="{% url 'admin_login_as_seller' pk=seller.id %}?action=products" class="btn btn-outline-success btn-sm fw-semibold d-inline-flex align-items-center gap-1 shadow-sm">
+                <span class="material-symbols-outlined" style="font-size: 1.05rem;">inventory_2</span>
+                <span>My Products</span>
+            </a>
+            <a href="{% url 'admin_login_as_seller' pk=seller.id %}?action=add_product" class="btn btn-success btn-sm fw-semibold d-inline-flex align-items-center gap-1 shadow-sm">
+                <span class="material-symbols-outlined" style="font-size: 1.05rem;">add_circle</span>
+                <span>Add Product</span>
+            </a>
+            <a href="{% url 'admin_login_as_seller' pk=seller.id %}?action=categories" class="btn btn-outline-success btn-sm fw-semibold d-inline-flex align-items-center gap-1 shadow-sm">
+                <span class="material-symbols-outlined" style="font-size: 1.05rem;">category</span>
+                <span>Store Categories</span>
+            </a>
+            <a href="{% url 'admin_login_as_seller' pk=seller.id %}?action=orders" class="btn btn-outline-success btn-sm fw-semibold d-inline-flex align-items-center gap-1 shadow-sm">
+                <span class="material-symbols-outlined" style="font-size: 1.05rem;">local_shipping</span>
+                <span>My Orders</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics Row -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="seller-stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-muted small fw-bold text-uppercase" style="font-size:0.72rem;">Listed Products</span>
+                <div class="rounded-3 p-2 d-flex" style="background:#ecfdf5;color:#059669;">
+                    <span class="material-symbols-outlined fs-5">inventory_2</span>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-0 text-dark">{{ total_products }}</h3>
+            <small class="text-muted">{{ in_stock }} in stock &bull; {{ low_stock }} low &bull; {{ out_of_stock }} empty</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="seller-stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-muted small fw-bold text-uppercase" style="font-size:0.72rem;">Customer Orders</span>
+                <div class="rounded-3 p-2 d-flex" style="background:#eff6ff;color:#2563eb;">
+                    <span class="material-symbols-outlined fs-5">shopping_cart</span>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-0 text-dark">{{ total_orders }}</h3>
+            <small class="text-muted">Orders containing seller items</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="seller-stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-muted small fw-bold text-uppercase" style="font-size:0.72rem;">Paid Revenue</span>
+                <div class="rounded-3 p-2 d-flex" style="background:#ecfdf5;color:#059669;">
+                    <span class="material-symbols-outlined fs-5">payments</span>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-0 text-success">₹{{ paid_revenue|intcomma }}</h3>
+            <small class="text-muted">From completed paid orders</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="seller-stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="text-muted small fw-bold text-uppercase" style="font-size:0.72rem;">Pending Revenue</span>
+                <div class="rounded-3 p-2 d-flex" style="background:#fef3c7;color:#d97706;">
+                    <span class="material-symbols-outlined fs-5">pending</span>
+                </div>
+            </div>
+            <h3 class="fw-bold mb-0 text-warning">₹{{ pending_revenue|intcomma }}</h3>
+            <small class="text-muted">From unpaid / COD pending orders</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Store & Contact Info -->
+    <div class="col-lg-5">
+        <!-- Store Details Card -->
+        <div class="card border rounded-4 shadow-sm bg-white p-4 mb-4">
+            <div class="section-title">🏪 Store & Business Details</div>
+            <div class="info-row">
+                <span class="info-label">Store Name</span>
+                <span class="info-value fw-bold">{{ seller.display_store_name }}</span>
+            </div>
+            {% if seller.seller_bio %}
+            <div class="info-row">
+                <span class="info-label">Store Bio</span>
+                <span class="info-value" style="white-space:pre-line;">{{ seller.seller_bio }}</span>
+            </div>
+            {% endif %}
+            {% if seller.gst_number %}
+            <div class="info-row">
+                <span class="info-label">GSTIN</span>
+                <span class="info-value">
+                    <span class="badge bg-primary-subtle text-primary fw-semibold">{{ seller.gst_number }}</span>
+                </span>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <span class="info-label">Account Status</span>
+                <span class="info-value">
+                    {% if seller.is_active %}
+                    <span class="badge bg-success-subtle text-success fw-bold">Active</span>
+                    {% else %}
+                    <span class="badge bg-danger-subtle text-danger fw-bold">Suspended</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Registered On</span>
+                <span class="info-value">{{ seller.date_joined|date:"d M Y, H:i" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Last Login</span>
+                <span class="info-value">{{ seller.last_login|date:"d M Y, H:i"|default:"Never" }}</span>
+            </div>
+        </div>
+
+        <!-- Contact Details Card -->
+        <div class="card border rounded-4 shadow-sm bg-white p-4 mb-4">
+            <div class="section-title">📞 Contact Information</div>
+            <div class="info-row">
+                <span class="info-label">Full Name</span>
+                <span class="info-value">{{ seller.get_full_name|default:"— Not set" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Username</span>
+                <span class="info-value">@{{ seller.username }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email Address</span>
+                <span class="info-value">
+                    <a href="mailto:{{ seller.email }}" class="text-primary text-decoration-none">{{ seller.email }}</a>
+                </span>
+            </div>
+            {% if seller.phone %}
+            <div class="info-row">
+                <span class="info-label">Mobile Number</span>
+                <span class="info-value">
+                    <a href="tel:{{ seller.phone }}" class="text-dark text-decoration-none">
+                        <span class="material-symbols-outlined fs-6 align-middle text-muted">call</span> {{ seller.phone }}
+                    </a>
+                </span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Products & Orders -->
+    <div class="col-lg-7">
+        <!-- Recent Products -->
+        <div class="card border rounded-4 shadow-sm bg-white p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="section-title mb-0">📦 Listed Products <small class="text-muted fw-normal">(latest 20)</small></div>
+                <a href="{% url 'admin_products' %}?q={{ seller.username }}" class="btn btn-sm btn-outline-success" style="font-size:0.75rem;">View All</a>
+            </div>
+            {% if seller_products %}
+            <div class="table-responsive">
+                <table class="table table-sm align-middle small mb-0">
+                    <thead class="table-light text-uppercase text-muted" style="font-size:0.68rem;">
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Category</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-center">Stock</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in seller_products %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    {% if product.image %}
+                                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="rounded-2" style="width:36px;height:36px;object-fit:cover;flex-shrink:0;">
+                                    {% else %}
+                                    <div class="rounded-2 d-flex align-items-center justify-content-center bg-light border flex-shrink-0" style="width:36px;height:36px;">
+                                        <span class="material-symbols-outlined fs-5 text-muted">inventory_2</span>
+                                    </div>
+                                    {% endif %}
+                                    <span class="fw-semibold text-dark" style="max-width:160px;" title="{{ product.name }}">{{ product.name|truncatechars:35 }}</span>
+                                </div>
+                            </td>
+                            <td class="text-muted">{{ product.category.name|default:"—" }}</td>
+                            <td class="text-end fw-bold">₹{{ product.price|intcomma }}</td>
+                            <td class="text-center">
+                                {% if product.stock == 0 %}
+                                <span class="badge bg-danger-subtle text-danger">Out</span>
+                                {% elif product.stock <= 5 %}
+                                <span class="badge bg-warning-subtle text-warning">{{ product.stock }} Low</span>
+                                {% else %}
+                                <span class="badge bg-success-subtle text-success">{{ product.stock }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if product.is_active %}
+                                <span class="badge bg-success-subtle text-success" style="font-size:0.65rem;">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary" style="font-size:0.65rem;">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <span class="material-symbols-outlined fs-1 mb-2" style="opacity:0.4;">inventory_2</span>
+                <p class="small mb-0">No products listed yet.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Recent Orders -->
+        <div class="card border rounded-4 shadow-sm bg-white p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="section-title mb-0">🛒 Customer Orders <small class="text-muted fw-normal">(latest 20)</small></div>
+                <a href="{% url 'admin_orders' %}?q={{ seller.username }}" class="btn btn-sm btn-outline-primary" style="font-size:0.75rem;">View All</a>
+            </div>
+            {% if seller_orders %}
+            <div class="table-responsive">
+                <table class="table table-sm align-middle small mb-0">
+                    <thead class="table-light text-uppercase text-muted" style="font-size:0.68rem;">
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th class="text-end">Amount</th>
+                            <th class="text-center">Payment</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in seller_orders %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'admin_order_detail' order_number=order.order_number %}" class="fw-bold text-primary text-decoration-none" style="font-size:0.8rem;">#TM-{{ order.order_number }}</a>
+                            </td>
+                            <td class="text-dark fw-semibold">{{ order.user.get_full_name|default:order.user.username }}</td>
+                            <td class="text-end fw-bold">₹{{ order.total_amount|intcomma }}</td>
+                            <td class="text-center">
+                                {% if order.payment_status == 'PAID' %}
+                                <span class="badge bg-success-subtle text-success" style="font-size:0.65rem;">Paid</span>
+                                {% elif order.payment_status == 'PENDING' %}
+                                <span class="badge bg-warning-subtle text-warning" style="font-size:0.65rem;">Pending</span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary" style="font-size:0.65rem;">{{ order.payment_status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-primary-subtle text-primary" style="font-size:0.65rem;">{{ order.get_order_status_display }}</span>
+                            </td>
+                            <td class="text-center text-muted" style="font-size:0.72rem;">{{ order.created_at|date:"d M" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+                <span class="material-symbols-outlined fs-1 mb-2" style="opacity:0.4;">shopping_cart</span>
+                <p class="small mb-0">No customer orders yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

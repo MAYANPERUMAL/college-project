@@ -1,0 +1,350 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}
+{% if selected_category %}{{ selected_category.name }} - Tech Mart{% elif query %}Search results for "{{ query }}" - Tech Mart{% else %}All Products - Tech Mart{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 px-xl-5 my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3 small">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'product_list' %}" class="text-decoration-none">Catalog</a></li>
+            {% if selected_category %}
+            <li class="breadcrumb-item active" aria-current="page">{{ selected_category.name }}</li>
+            {% elif query %}
+            <li class="breadcrumb-item active" aria-current="page">Search: "{{ query }}"</li>
+            {% else %}
+            <li class="breadcrumb-item active" aria-current="page">All Tech Products</li>
+            {% endif %}
+        </ol>
+    </nav>
+
+    <!-- Mobile & Tablet Filter Toggle Button (Visible on < lg devices) -->
+    <div class="d-lg-none mb-3">
+        <button class="btn btn-outline-primary w-100 fw-bold py-2 rounded-3 d-flex align-items-center justify-content-center gap-2 shadow-sm bg-white" 
+                type="button" data-bs-toggle="offcanvas" data-bs-target="#filterOffcanvas" aria-controls="filterOffcanvas">
+            <span class="material-symbols-outlined fs-5">tune</span>
+            <span>Filter & Refine Products</span>
+            {% if selected_category or current_brand or min_price or max_price %}
+            <span class="badge bg-primary rounded-pill ms-1">Active</span>
+            {% endif %}
+        </button>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Filter Sidebar (Offcanvas on Mobile/Tablet, Persistent on Laptop/Desktop) -->
+        <div class="col-lg-3 col-xl-3 col-xxl-2">
+            <div class="offcanvas-lg offcanvas-start rounded-4-lg" tabindex="-1" id="filterOffcanvas" aria-labelledby="filterOffcanvasLabel">
+                <div class="offcanvas-header border-bottom d-lg-none p-3">
+                    <h5 class="offcanvas-title fw-bold d-flex align-items-center gap-2" id="filterOffcanvasLabel">
+                        <span class="material-symbols-outlined text-primary">tune</span> Filter Products
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#filterOffcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body p-0">
+                    <div class="card border rounded-4 p-3 shadow-sm bg-white w-100 sticky-top tm-filter-card" style="top: 85px; z-index: 5 !important;">
+                        <!-- Header with Active Filters Badge & Clear All -->
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined fs-5 text-primary">tune</span>
+                                <span class="fw-bold tm-filter-title mb-0">Filters</span>
+                                {% if active_filters %}
+                                <span class="badge rounded-pill bg-primary ms-1" style="font-size: 0.68rem;">{{ active_filters|length }}</span>
+                                {% endif %}
+                            </div>
+                            {% if active_filters or query or current_brand or min_price or max_price or in_stock or deal or featured or rating_min %}
+                            <a href="{% url 'product_list' %}" class="text-danger text-decoration-none small fw-bold d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined fs-6">close</span> Clear All
+                            </a>
+                            {% endif %}
+                        </div>
+
+                        <!-- Active Filter Chips (if any) -->
+                        {% if active_filters %}
+                        <div class="mb-3 pb-2 border-bottom">
+                            <div class="small fw-bold text-muted text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">Active Filters:</div>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% for af in active_filters %}
+                                <span class="tm-filter-chip">
+                                    <span>{{ af.label }}</span>
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <form method="get" action="{% url 'product_list' %}" id="filter-form">
+                            {% if query %}
+                            <input type="hidden" name="q" value="{{ query }}">
+                            {% endif %}
+                            {% if selected_category %}
+                            <input type="hidden" name="category" value="{{ selected_category.slug }}">
+                            {% endif %}
+                            {% if current_brand %}
+                            <input type="hidden" name="brand" value="{{ current_brand }}" id="hidden-brand-input">
+                            {% endif %}
+
+                            <!-- 1. Categories Filter -->
+                            <div class="tm-filter-group">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label tm-filter-section-label mb-0">Categories</label>
+                                    <span class="text-muted small fw-bold" style="font-size: 0.72rem;">{{ categories|length }} Total</span>
+                                </div>
+                                <div class="d-flex flex-column gap-1" style="max-height: 220px; overflow-y: auto;">
+                                    <a href="{% url 'product_list' %}{% if query %}?q={{ query }}{% endif %}{% if current_brand %}&brand={{ current_brand }}{% endif %}" 
+                                       class="tm-filter-link {% if not selected_category %}active{% endif %} d-flex align-items-center justify-content-between">
+                                        <span>All Categories</span>
+                                        <span class="tm-filter-badge">{{ products.count }}</span>
+                                    </a>
+                                    {% for cat in categories %}
+                                    <a href="{% url 'product_list' %}?category={{ cat.slug }}{% if query %}&q={{ query }}{% endif %}{% if current_brand %}&brand={{ current_brand }}{% endif %}" 
+                                       class="tm-filter-link {% if selected_category.slug == cat.slug %}active{% endif %} d-flex align-items-center justify-content-between">
+                                        <span class="text-truncate me-1">{{ cat.name }}</span>
+                                        <span class="tm-filter-badge">{{ cat.product_count }}</span>
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- 2. Brand Filter with Checkboxes & Counts -->
+                            {% if brand_counts %}
+                            <div class="tm-filter-group">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label tm-filter-section-label mb-0">Brands</label>
+                                    {% if current_brand %}
+                                    <a href="?{% if selected_category %}category={{ selected_category.slug }}&{% endif %}{% if min_price %}min_price={{ min_price }}&{% endif %}{% if max_price %}max_price={{ max_price }}&{% endif %}" 
+                                       class="text-primary small text-decoration-none fw-bold" style="font-size: 0.75rem;">Clear Brand</a>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex flex-column gap-1">
+                                    {% for b in brand_counts %}
+                                    <a href="?{% if selected_category %}category={{ selected_category.slug }}&{% endif %}brand={{ b.brand }}{% if min_price %}&min_price={{ min_price }}{% endif %}{% if max_price %}&max_price={{ max_price }}{% endif %}{% if in_stock %}&in_stock={{ in_stock }}{% endif %}{% if deal %}&deal={{ deal }}{% endif %}" 
+                                       class="tm-filter-brand-item {% if current_brand == b.brand %}active{% endif %}">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="material-symbols-outlined fs-6 {% if current_brand == b.brand %}text-white{% else %}text-muted{% endif %}">
+                                                {% if current_brand == b.brand %}check_box{% else %}check_box_outline_blank{% endif %}
+                                            </span>
+                                            <span>{{ b.brand }}</span>
+                                        </span>
+                                        <span class="tm-filter-badge">{{ b.count }}</span>
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- 3. Price Range Presets & Custom Range -->
+                            <div class="tm-filter-group">
+                                <label class="form-label tm-filter-section-label mb-2">Price Range (₹)</label>
+                                <!-- Quick Price Presets -->
+                                <div class="d-flex flex-column gap-1 mb-2">
+                                    <a href="?{% if selected_category %}category={{ selected_category.slug }}&{% endif %}{% if current_brand %}brand={{ current_brand }}&{% endif %}max_price=10000" 
+                                       class="tm-filter-price-pill {% if max_price == '10000' and not min_price %}active{% endif %}">
+                                        Under ₹10,000
+                                    </a>
+                                    <a href="?{% if selected_category %}category={{ selected_category.slug }}&{% endif %}{% if current_brand %}brand={{ current_brand }}&{% endif %}min_price=10000&max_price=30000" 
+                                       class="tm-filter-price-pill {% if min_price == '10000' and max_price == '30000' %}active{% endif %}">
+                                        ₹10,000 – ₹30,000
+                                    </a>
+                                    <a href="?{% if selected_category %}category={{ selected_category.slug }}&{% endif %}{% if current_brand %}brand={{ current_brand }}&{% endif %}min_price=30000&max_price=60000" 
+                                       class="tm-filter-price-pill {% if min_price == '30000' and max_price == '60000' %}active{% endif %}">
+                                        ₹30,000 – ₹60,000
+                                    </a>
+                                    <a href="?{% if selected_category %}category={{ selected_category.slug }}&{% endif %}{% if current_brand %}brand={{ current_brand }}&{% endif %}min_price=60000" 
+                                       class="tm-filter-price-pill {% if min_price == '60000' and not max_price %}active{% endif %}">
+                                        Above ₹60,000
+                                    </a>
+                                </div>
+                                <!-- Custom Min/Max Inputs -->
+                                <div class="d-flex align-items-center gap-1.5 mt-2">
+                                    <input type="number" name="min_price" class="form-control form-control-sm tm-filter-input" placeholder="₹ Min" value="{{ min_price }}">
+                                    <span class="text-dark fw-bold small">-</span>
+                                    <input type="number" name="max_price" class="form-control form-control-sm tm-filter-input" placeholder="₹ Max" value="{{ max_price }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary fw-bold px-2 py-1" title="Apply Price">Go</button>
+                                </div>
+                            </div>
+
+                            <!-- 4. Customer Ratings Filter -->
+                            <div class="tm-filter-group">
+                                <label class="form-label tm-filter-section-label mb-2">Customer Rating</label>
+                                <div class="d-flex flex-column gap-1">
+                                    <a href="?{% if selected_category %}category={{ selected_category.slug }}&{% endif %}{% if current_brand %}brand={{ current_brand }}&{% endif %}rating_min=4.8" 
+                                       class="tm-filter-rating-item {% if rating_min == '4.8' %}active{% endif %}">
+                                        <span class="d-flex align-items-center text-warning">
+                                            <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                            <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                            <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                            <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                            <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                        </span>
+                                        <span class="small fw-bold text-dark">4.8 & Above</span>
+                                    </a>
+                                    <a href="?{% if selected_category %}category={{ selected_category.slug }}&{% endif %}{% if current_brand %}brand={{ current_brand }}&{% endif %}rating_min=4.5" 
+                                       class="tm-filter-rating-item {% if rating_min == '4.5' %}active{% endif %}">
+                                        <span class="d-flex align-items-center text-warning">
+                                            <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                            <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                            <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                            <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                            <span class="material-symbols-outlined fs-6">star</span>
+                                        </span>
+                                        <span class="small fw-bold text-dark">4.5 & Above</span>
+                                    </a>
+                                    <a href="?{% if selected_category %}category={{ selected_category.slug }}&{% endif %}{% if current_brand %}brand={{ current_brand }}&{% endif %}rating_min=4.0" 
+                                       class="tm-filter-rating-item {% if rating_min == '4.0' %}active{% endif %}">
+                                        <span class="d-flex align-items-center text-warning">
+                                            <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                            <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                            <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                            <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                            <span class="material-symbols-outlined fs-6">star</span>
+                                        </span>
+                                        <span class="small fw-bold text-dark">4.0 & Above</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- 5. Special Offers & Stock Availability -->
+                            <div class="tm-filter-group">
+                                <label class="form-label tm-filter-section-label mb-2">Offers & Stock</label>
+                                <label class="tm-filter-check">
+                                    <input type="checkbox" name="deal" value="1" {% if deal == '1' %}checked{% endif %} onchange="document.getElementById('filter-form').submit();">
+                                    <span class="badge bg-warning-subtle text-dark border border-warning px-1.5 py-0.5" style="font-size: 0.68rem;">DEAL</span>
+                                    <span>Spotlight Deals Only</span>
+                                </label>
+                                <label class="tm-filter-check">
+                                    <input type="checkbox" name="featured" value="1" {% if featured == '1' %}checked{% endif %} onchange="document.getElementById('filter-form').submit();">
+                                    <span class="badge bg-primary-subtle text-primary border border-primary px-1.5 py-0.5" style="font-size: 0.68rem;">TOP</span>
+                                    <span>Featured Tech Only</span>
+                                </label>
+                                <label class="tm-filter-check">
+                                    <input type="checkbox" name="in_stock" value="1" id="in_stock_check" {% if in_stock == '1' %}checked{% endif %} onchange="document.getElementById('filter-form').submit();">
+                                    <span class="badge bg-success-subtle text-success border border-success px-1.5 py-0.5" style="font-size: 0.68rem;">STOCK</span>
+                                    <span>In Stock Only</span>
+                                </label>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="pt-1">
+                                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold py-2 mb-2 shadow-sm d-flex align-items-center justify-content-center gap-1">
+                                    <span class="material-symbols-outlined fs-5">filter_alt</span> Apply All Filters
+                                </button>
+                                <a href="{% url 'product_list' %}" class="btn btn-outline-secondary btn-sm w-100 fw-semibold py-1.5">
+                                    Reset Filters
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Grid Area (Full Screen Responsive) -->
+        <div class="col-lg-9 col-xl-9 col-xxl-10">
+            <!-- Header bar with result counts and sort dropdown -->
+            <div class="card border rounded-4 p-3 shadow-sm bg-white mb-4 tm-catalog-header-card">
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+                    <div>
+                        <h4 class="fw-bold mb-1 tm-catalog-heading">
+                            {% if selected_category %}
+                                {{ selected_category.name }}
+                            {% elif query %}
+                                Results for "<span class="text-primary">{{ query }}</span>"
+                            {% else %}
+                                All Consumer Electronics
+                            {% endif %}
+                        </h4>
+                        <div class="tm-catalog-count">Showing {{ products.count }} verified product{{ products.count|pluralize }}</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="small text-nowrap mb-0 tm-sort-label">Sort By:</label>
+                        <select class="form-select form-select-sm tm-sort-select" style="width: auto;" 
+                                onchange="location = this.value;">
+                            <option value="?sort=featured{% if selected_category %}&category={{ selected_category.slug }}{% endif %}{% if query %}&q={{ query }}{% endif %}" {% if sort_by == 'featured' %}selected{% endif %}>Featured</option>
+                            <option value="?sort=price_low{% if selected_category %}&category={{ selected_category.slug }}{% endif %}{% if query %}&q={{ query }}{% endif %}" {% if sort_by == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+                            <option value="?sort=price_high{% if selected_category %}&category={{ selected_category.slug }}{% endif %}{% if query %}&q={{ query }}{% endif %}" {% if sort_by == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+                            <option value="?sort=rating{% if selected_category %}&category={{ selected_category.slug }}{% endif %}{% if query %}&q={{ query }}{% endif %}" {% if sort_by == 'rating' %}selected{% endif %}>Customer Rating</option>
+                            <option value="?sort=newest{% if selected_category %}&category={{ selected_category.slug }}{% endif %}{% if query %}&q={{ query }}{% endif %}" {% if sort_by == 'newest' %}selected{% endif %}>Newest Arrivals</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid of Products (Responsive: 1 mobile, 2 tablet, 3 laptop, 4 wide desktop) -->
+            {% if products %}
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-xl-3 row-cols-xxl-4 g-3 g-md-4">
+                {% for product in products %}
+                <div class="col">
+                    <div class="tm-product-card">
+                        <div class="tm-product-img-box">
+                            {% if product.is_deal %}
+                            <span class="tm-badge-deal">{{ product.deal_tag|default:'DEAL' }}</span>
+                            {% endif %}
+                            {% if product.discount_percent > 0 %}
+                            <span class="tm-badge-save">{{ product.discount_percent }}% OFF</span>
+                            {% endif %}
+                            <a href="{% url 'product_detail' slug=product.slug %}" class="d-flex align-items-center justify-content-center w-100 h-100">
+                                <img src="{{ product.display_image }}" alt="{{ product.name }}">
+                            </a>
+                        </div>
+                        <div class="p-3 d-flex flex-column flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="tm-product-brand">{{ product.brand }}</small>
+                                {% if product.is_in_stock %}
+                                <span class="badge bg-success-subtle text-success small fw-bold" style="font-size: 0.65rem;">IN STOCK</span>
+                                {% else %}
+                                <span class="badge bg-danger-subtle text-danger small fw-bold" style="font-size: 0.65rem;">OUT OF STOCK</span>
+                                {% endif %}
+                            </div>
+                            <h6 class="tm-product-title mt-1 mb-2 text-truncate-2" style="min-height: 2.8em;">
+                                <a href="{% url 'product_detail' slug=product.slug %}">
+                                    {{ product.name }}
+                                </a>
+                            </h6>
+                            <div class="d-flex align-items-center gap-1 mb-2 small text-warning">
+                                <span class="badge bg-warning-subtle text-warning-emphasis fw-bold d-flex align-items-center gap-1">
+                                    <span class="material-symbols-outlined fs-6 material-symbols-fill">star</span>
+                                    {{ product.rating }}
+                                </span>
+                                <span class="text-muted fw-semibold" style="font-size: 0.75rem;">({{ product.reviews_count }})</span>
+                            </div>
+                            <div class="mt-auto pt-2 border-top">
+                                <div class="d-flex align-items-baseline gap-2">
+                                    <span class="tm-price-current">₹{{ product.price|intcomma }}</span>
+                                    {% if product.mrp > product.price %}
+                                    <span class="tm-price-mrp">₹{{ product.mrp|intcomma }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="small tm-delivery-badge mt-1 d-flex align-items-center gap-1">
+                                    <span class="material-symbols-outlined fs-6">bolt</span> Free Fast Delivery
+                                </div>
+                                <form action="{% url 'add_to_cart' product_id=product.id %}" method="post" class="mt-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="quantity" value="1">
+                                    <button type="submit" class="btn btn-tm-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-1"
+                                            {% if not product.is_in_stock %}disabled{% endif %}>
+                                        <span class="material-symbols-outlined fs-6">add_shopping_cart</span>
+                                        {% if product.is_in_stock %}Add to Cart{% else %}Out of Stock{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card border rounded-4 p-5 text-center bg-white shadow-sm">
+                <span class="material-symbols-outlined fs-1 text-muted mb-2">search_off</span>
+                <h5 class="fw-bold">No Products Found</h5>
+                <p class="text-muted small">We couldn't find any products matching your selected criteria.</p>
+                <a href="{% url 'product_list' %}" class="btn btn-primary btn-sm mx-auto px-4 rounded-pill">Reset Filters</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,224 @@
+{% extends 'seller/base_seller.html' %}
+{% load humanize %}
+
+{% block title %}Order #{{ order.order_number }} - Tech Mart Seller{% endblock %}
+
+{% block seller_content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <nav aria-label="breadcrumb" class="small mb-1">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'seller_dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'seller_orders' %}" class="text-decoration-none">My Orders</a></li>
+                <li class="breadcrumb-item active">#{{ order.order_number }}</li>
+            </ol>
+        </nav>
+        <h3 class="fw-bold mb-0">Order #{{ order.order_number }}</h3>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'seller_orders' %}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+            <span class="material-symbols-outlined fs-6">arrow_back</span>
+            <span>Back to Orders</span>
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Seller's Items in this order -->
+    <div class="col-lg-8">
+        <div class="card border rounded-4 shadow-sm bg-white overflow-hidden mb-4">
+            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined text-success fs-5">inventory_2</span>
+                    <span>My Store Items in This Order ({{ seller_items.count }})</span>
+                </h6>
+                <span class="badge bg-success-subtle text-success fw-bold">Verified Shipment</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light small text-uppercase text-muted">
+                        <tr>
+                            <th style="width: 38%;" class="ps-3">Item Details</th>
+                            <th style="width: 14%;">Unit Price</th>
+                            <th style="width: 10%;">Quantity</th>
+                            <th style="width: 24%;">Item Fulfillment Status</th>
+                            <th style="width: 14%;" class="text-end pe-3">Line Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        {% for item in seller_items %}
+                        <tr>
+                            <td class="ps-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-3 bg-light p-1 border d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                        <img src="{{ item.image_url|default:'https://placehold.co/100x100/e2e8f0/059669?text=Item' }}" alt="{{ item.product_name }}" class="img-fluid" style="max-height: 40px; object-fit: contain;">
+                                    </div>
+                                    <div>
+                                        <strong class="d-block text-dark">{{ item.product_name }}</strong>
+                                        <small class="text-muted fw-semibold text-uppercase">{{ item.brand }}</small>
+                                        {% if item.model_number %}
+                                        <span class="text-muted" style="font-size: 0.72rem;"> • {{ item.model_number }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-bold">₹{{ item.price|intcomma }}</div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border px-2.5 py-1.5 fw-bold">{{ item.quantity }}</span>
+                            </td>
+                            <td>
+                                <!-- Item Milestone Status and Seller Action -->
+                                <div class="mb-1">
+                                    {% if item.status == 'CONFIRMED' %}
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                            Confirmed
+                                        </span>
+                                    {% elif item.status == 'PACKED' %}
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                            Packed & Sealed
+                                        </span>
+                                    {% elif item.status == 'READY_FOR_PICKUP' %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            Ready for Pickup
+                                        </span>
+                                    {% elif item.status == 'REJECTED' %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                            Rejected
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="d-flex align-items-center gap-1 mt-1">
+                                    {% if item.status == 'CONFIRMED' %}
+                                    <form method="post" action="{% url 'seller_update_item_status' item.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="status" value="PACKED">
+                                        <button type="submit" class="btn btn-sm btn-outline-primary py-0.5 px-2 fw-semibold" style="font-size: 0.72rem;" title="Pack & Seal package for shipping">
+                                            Pack Item
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'seller_update_item_status' item.id %}" class="d-inline" onsubmit="return confirm('Reject this item due to stock unavailability?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="status" value="REJECTED">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger py-0.5 px-2" style="font-size: 0.72rem;" title="Reject item">
+                                            Reject
+                                        </button>
+                                    </form>
+                                    {% elif item.status == 'PACKED' %}
+                                    <form method="post" action="{% url 'seller_update_item_status' item.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="status" value="READY_FOR_PICKUP">
+                                        <button type="submit" class="btn btn-sm btn-success text-white py-0.5 px-2 fw-semibold" style="font-size: 0.72rem;" title="Mark ready for courier pickup">
+                                            Ready for Pickup
+                                        </button>
+                                    </form>
+                                    {% elif item.status == 'READY_FOR_PICKUP' %}
+                                    <span class="text-muted" style="font-size: 0.72rem;">Awaiting courier pickup</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="text-end pe-3">
+                                <span class="fw-bold fs-6 text-success">₹{{ item.line_total|intcomma }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="4" class="text-end ps-3">Total Seller Item Payout:</th>
+                            <th class="text-end pe-3 text-success fs-5 fw-bold">₹{{ seller_subtotal|intcomma }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Logistics & Fulfillment Card -->
+        <div class="card border rounded-4 shadow-sm bg-white p-3 p-md-4 mb-4">
+            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined text-primary fs-5">local_shipping</span>
+                <span>Fulfillment & Logistics Status</span>
+            </h6>
+            <div class="row g-3 small">
+                <div class="col-sm-6">
+                    <span class="text-muted d-block">Logistics Partner:</span>
+                    <strong class="text-dark">{{ order.courier_name }}</strong>
+                </div>
+                <div class="col-sm-6">
+                    <span class="text-muted d-block">AWB Tracking Code:</span>
+                    <strong class="font-monospace text-dark">{{ order.tracking_number }}</strong>
+                </div>
+                <div class="col-sm-6">
+                    <span class="text-muted d-block">Current Hub Location:</span>
+                    <strong class="text-dark">{{ order.current_location }}</strong>
+                </div>
+                <div class="col-sm-6">
+                    <span class="text-muted d-block">Estimated Customer Delivery:</span>
+                    <strong class="text-dark">{{ order.estimated_delivery_text }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Shipping & Payment Summary -->
+    <div class="col-lg-4">
+        <!-- Customer Shipping Address -->
+        <div class="card border rounded-4 shadow-sm bg-white p-3 mb-4">
+            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined text-muted fs-5">location_on</span>
+                <span>Customer Delivery Address</span>
+            </h6>
+            <div class="small">
+                <strong class="d-block text-dark fs-6">{{ order.shipping_name }}</strong>
+                <div class="text-muted mt-1">
+                    <div>{{ order.shipping_address_line1 }}</div>
+                    {% if order.shipping_address_line2 %}
+                    <div>{{ order.shipping_address_line2 }}</div>
+                    {% endif %}
+                    {% if order.shipping_landmark %}
+                    <div>Landmark: {{ order.shipping_landmark }}</div>
+                    {% endif %}
+                    <div>{{ order.shipping_city }}, {{ order.shipping_state }} - {{ order.shipping_pincode }}</div>
+                </div>
+                <div class="mt-2 pt-2 border-top text-muted">
+                    <span class="material-symbols-outlined fs-6 align-middle">call</span>
+                    <span class="ms-1">{{ order.shipping_phone }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Details -->
+        <div class="card border rounded-4 shadow-sm bg-white p-3 mb-4">
+            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined text-muted fs-5">credit_card</span>
+                <span>Payment & Order Status</span>
+            </h6>
+            <div class="small">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Order Status:</span>
+                    <span class="badge {% if order.order_status == 'DELIVERED' %}bg-success{% elif order.order_status == 'CANCELLED' %}bg-danger{% else %}bg-primary{% endif %}">
+                        {{ order.get_order_status_display }}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Payment Method:</span>
+                    <strong class="text-dark">{{ order.get_payment_method_display }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Payment Status:</span>
+                    <span class="badge {% if order.payment_status == 'PAID' %}bg-success-subtle text-success{% elif order.payment_status == 'REFUNDED' %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning-emphasis{% endif %} fw-semibold">
+                        {{ order.get_payment_status_display }}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between pt-2 border-top">
+                    <span class="fw-bold">My Items Subtotal:</span>
+                    <strong class="text-success fs-6">₹{{ seller_subtotal|intcomma }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

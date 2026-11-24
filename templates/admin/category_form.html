@@ -1,0 +1,118 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Edit Category: {{ category.name }} - Tech Mart Admin{% endblock %}
+
+{% block admin_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.02em;">Edit Category</h3>
+                <p class="text-muted small mb-0">Modify category details, storefront display order, and icon</p>
+            </div>
+            <a href="{% url 'admin_categories' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1">
+                <span class="material-symbols-outlined fs-6">arrow_back</span>
+                <span>Back to Categories</span>
+            </a>
+        </div>
+
+        <div class="card border rounded-4 p-4 shadow-sm bg-white" style="border-color: #e2e8f0 !important;">
+            <div class="d-flex align-items-center gap-3 pb-3 mb-3 border-bottom" style="border-color: #f1f5f9 !important;">
+                <div class="rounded-3 d-flex align-items-center justify-content-center text-white flex-shrink-0" style="width: 42px; height: 42px; background: #1e463a;">
+                    <span class="material-symbols-outlined fs-5" id="formHeaderIcon" style="color: #f5d58f;">{{ category.icon_name|default:'category' }}</span>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0 text-dark">{{ category.name }}</h5>
+                    <small class="text-muted" style="font-size: 0.75rem;">Slug: <code>/{{ category.slug }}</code></small>
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark">Category Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark">Icon Name (Material Symbol)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 p-2">
+                            <span class="material-symbols-outlined fs-5 text-dark" id="editIconLivePreview">{{ category.icon_name|default:'devices' }}</span>
+                        </span>
+                        {{ form.icon_name }}
+                    </div>
+
+                    <!-- Quick Icon Suggestions Chips -->
+                    <div class="mt-2">
+                        <small class="text-muted d-block mb-1" style="font-size: 0.7rem; font-weight: 600;">QUICK SUGGESTIONS (CLICK TO SELECT):</small>
+                        <div class="d-flex flex-wrap gap-1">
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="devices" style="font-size: 0.72rem;">💻 devices</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="laptop_chromebook" style="font-size: 0.72rem;">💻 laptop</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="phone_iphone" style="font-size: 0.72rem;">📱 phone</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="headphones" style="font-size: 0.72rem;">🎧 headphones</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="tv" style="font-size: 0.72rem;">📺 tv</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="watch" style="font-size: 0.72rem;">⌚ watch</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="speaker" style="font-size: 0.72rem;">🔊 speaker</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="sports_esports" style="font-size: 0.72rem;">🎮 gaming</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="camera_alt" style="font-size: 0.72rem;">📷 camera</button>
+                            <button type="button" class="btn btn-sm btn-light border py-0.5 px-2 rounded-pill small icon-chip" data-icon="electrical_services" style="font-size: 0.72rem;">🔌 accessories</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark">Display Order</label>
+                    {{ form.order }}
+                    <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">Position in storefront navigation menu</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark">Description</label>
+                    {{ form.description }}
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 pt-2">
+                    <a href="{% url 'admin_categories' %}" class="btn btn-light border rounded-3 px-3 fw-semibold">Cancel</a>
+                    <button type="submit" class="btn fw-bold px-4 rounded-3 d-inline-flex align-items-center gap-1 shadow-sm" style="background: #1e463a; color: #ffffff; border: none;">
+                        <span class="material-symbols-outlined fs-5" style="color: #f5d58f;">check</span>
+                        <span>Save Changes</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const iconInput = document.querySelector('input[name="icon_name"]');
+    const iconPreview = document.getElementById('editIconLivePreview');
+    const headerIcon = document.getElementById('formHeaderIcon');
+    const chips = document.querySelectorAll('.icon-chip');
+
+    function updatePreview() {
+        if (!iconInput || !iconPreview) return;
+        const val = iconInput.value.trim() || 'devices';
+        iconPreview.textContent = val;
+        if (headerIcon) headerIcon.textContent = val;
+    }
+
+    if (iconInput) {
+        iconInput.addEventListener('input', updatePreview);
+        updatePreview();
+    }
+
+    chips.forEach(chip => {
+        chip.addEventListener('click', function () {
+            const icon = this.getAttribute('data-icon');
+            if (iconInput) {
+                iconInput.value = icon;
+                updatePreview();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

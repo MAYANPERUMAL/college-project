@@ -1,0 +1,305 @@
+{% extends 'delivery/base_delivery.html' %}
+{% load humanize %}
+
+{% block title %}Delivery #{{ order.order_number }} - Partner Portal{% endblock %}
+{% block header_title %}Order #{{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{% url 'delivery_dashboard' %}" class="btn btn-sm btn-light text-muted d-inline-flex align-items-center gap-1 mb-2">
+        <span class="material-symbols-outlined fs-6">arrow_back</span>
+        <span>Back to Active Deliveries</span>
+    </a>
+</div>
+
+<!-- Main Grid -->
+<div class="row g-4">
+    <!-- Left Column: Order Fulfillment Action Panel & Package Items -->
+    <div class="col-lg-8">
+        <!-- Delivery Milestone Action Card -->
+        <div class="card border-0 shadow-sm rounded-4 bg-white mb-4 overflow-hidden">
+            <div class="card-header bg-white border-bottom p-3.5 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined text-primary fs-5">swap_calls</span>
+                    <h6 class="mb-0 fw-bold text-dark">Live Delivery Milestones</h6>
+                </div>
+                <div>
+                    {% if order.order_status == 'CONFIRMED' %}
+                        <span class="badge bg-secondary-subtle text-secondary border px-3 py-1.5 rounded-pill">Confirmed by Store</span>
+                    {% elif order.order_status == 'PACKED' %}
+                        <span class="badge bg-info-subtle text-info border px-3 py-1.5 rounded-pill">Packed & Ready at Seller Hub</span>
+                    {% elif order.order_status == 'IN_TRANSIT' %}
+                        <span class="badge bg-primary-subtle text-primary border px-3 py-1.5 rounded-pill">In Transit (Picked Up)</span>
+                    {% elif order.order_status == 'OUT_FOR_DELIVERY' %}
+                        <span class="badge bg-warning text-dark border border-warning px-3 py-1.5 rounded-pill">🛵 Out for Delivery</span>
+                    {% elif order.order_status == 'DELIVERED' %}
+                        <span class="badge bg-success text-white px-3 py-1.5 rounded-pill">✅ Delivered</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card-body p-4">
+                <!-- Milestone Progress Tracker Bar -->
+                <div class="d-flex align-items-center justify-content-between position-relative mb-4 px-2">
+                    <div class="text-center" style="z-index: 2;">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white mb-1 shadow-sm" style="width: 36px; height: 36px; background: #059669;">
+                            <span class="material-symbols-outlined fs-6">check</span>
+                        </div>
+                        <span class="small fw-bold text-dark d-block">Confirmed</span>
+                    </div>
+
+                    <div class="text-center" style="z-index: 2;">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white mb-1 shadow-sm" style="width: 36px; height: 36px; background: {% if order.order_status != 'CONFIRMED' %}#059669{% else %}#cbd5e1{% endif %};">
+                            <span class="material-symbols-outlined fs-6">inventory_2</span>
+                        </div>
+                        <span class="small fw-bold text-dark d-block">Packed</span>
+                    </div>
+
+                    <div class="text-center" style="z-index: 2;">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white mb-1 shadow-sm" style="width: 36px; height: 36px; background: {% if order.order_status in 'IN_TRANSIT,OUT_FOR_DELIVERY,DELIVERED' %}#2563eb{% else %}#cbd5e1{% endif %};">
+                            <span class="material-symbols-outlined fs-6">local_shipping</span>
+                        </div>
+                        <span class="small fw-bold text-dark d-block">In Transit</span>
+                    </div>
+
+                    <div class="text-center" style="z-index: 2;">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white mb-1 shadow-sm" style="width: 36px; height: 36px; background: {% if order.order_status in 'OUT_FOR_DELIVERY,DELIVERED' %}#f59e0b{% else %}#cbd5e1{% endif %};">
+                            <span class="material-symbols-outlined fs-6">delivery_dining</span>
+                        </div>
+                        <span class="small fw-bold text-dark d-block">Out for Delivery</span>
+                    </div>
+
+                    <div class="text-center" style="z-index: 2;">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white mb-1 shadow-sm" style="width: 36px; height: 36px; background: {% if order.order_status == 'DELIVERED' %}#059669{% else %}#cbd5e1{% endif %};">
+                            <span class="material-symbols-outlined fs-6">task_alt</span>
+                        </div>
+                        <span class="small fw-bold text-dark d-block">Delivered</span>
+                    </div>
+                </div>
+
+                <!-- Step-by-Step Action Buttons Based on Status -->
+                {% if order.order_status == 'CONFIRMED' or order.order_status == 'PACKED' %}
+                    <div class="p-3.5 rounded-4 bg-light border">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle p-2.5 bg-primary text-white">
+                                <span class="material-symbols-outlined fs-4">inventory_2</span>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold mb-1 text-dark">Step 1: Pickup Package from Seller Hub</h6>
+                                <p class="text-muted small mb-0">Collect all packaged items from the seller store. Once in your custody, mark as Picked Up.</p>
+                            </div>
+                            <form method="post" action="{% url 'delivery_update_status' order.order_number %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="pickup">
+                                <button type="submit" class="btn btn-primary fw-bold px-4 py-2.5 rounded-3 shadow-sm d-flex align-items-center gap-2">
+                                    <span class="material-symbols-outlined fs-5">local_shipping</span>
+                                    <span>Mark Picked Up & In Transit</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                {% elif order.order_status == 'IN_TRANSIT' %}
+                    <div class="p-3.5 rounded-4 bg-primary-subtle border border-primary-subtle">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle p-2.5 bg-primary text-white">
+                                <span class="material-symbols-outlined fs-4">delivery_dining</span>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold mb-1 text-dark">Step 2: Head to Customer Doorstep</h6>
+                                <p class="text-muted small mb-0">Package is with you. Click below when you are en route to the customer's doorstep in {{ order.shipping_city }}.</p>
+                            </div>
+                            <form method="post" action="{% url 'delivery_update_status' order.order_number %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="out_for_delivery">
+                                <button type="submit" class="btn btn-warning text-dark fw-bold px-4 py-2.5 rounded-3 shadow-sm d-flex align-items-center gap-2">
+                                    <span class="material-symbols-outlined fs-5">electric_moped</span>
+                                    <span>Mark Out for Delivery</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                {% elif order.order_status == 'OUT_FOR_DELIVERY' %}
+                    <div class="p-4 rounded-4 bg-white border border-2 border-warning shadow-sm">
+                        <div class="text-center mb-3">
+                            <div class="d-inline-flex p-3 rounded-circle bg-warning-subtle text-warning-emphasis mb-2">
+                                <span class="material-symbols-outlined fs-2">verified_user</span>
+                            </div>
+                            <h5 class="fw-bold text-dark mb-1">Step 3: Verify Customer Doorstep PIN</h5>
+                            <p class="text-muted small mb-0">Ask customer <strong>{{ order.shipping_name }}</strong> for their 4-digit Delivery PIN shown on their screen or SMS.</p>
+                        </div>
+
+                        <form method="post" action="{% url 'delivery_update_status' order.order_number %}" class="mx-auto" style="max-width: 360px;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="deliver">
+                            <div class="mb-3 text-center">
+                                <input type="text" name="delivery_pin" class="form-control form-control-lg text-center fw-bold fs-2 font-monospace" placeholder="• • • •" maxlength="4" required style="letter-spacing: 0.5rem;" autocomplete="off">
+                                <small class="text-muted d-block mt-2">Entering the valid PIN confirms handover and marks order Delivered.</small>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100 py-2.5 fw-bold rounded-3 shadow-sm fs-6 d-flex align-items-center justify-content-center gap-2">
+                                <span class="material-symbols-outlined fs-5">check_circle</span>
+                                <span>Verify PIN & Complete Delivery</span>
+                            </button>
+                        </form>
+                    </div>
+
+                {% elif order.order_status == 'DELIVERED' %}
+                    <div class="p-4 rounded-4 bg-success-subtle border border-success-subtle text-center">
+                        <div class="d-inline-flex p-3 rounded-circle bg-success text-white mb-2 shadow-sm">
+                            <span class="material-symbols-outlined fs-2">task_alt</span>
+                        </div>
+                        <h5 class="fw-bold text-success mb-1">Package Delivered Successfully!</h5>
+                        <p class="text-muted small mb-0">Delivered on {{ order.delivery_delivered_at|default:order.updated_at|date:"d M Y, h:i A" }} and verified with doorstep PIN.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Package Items Checklist -->
+        <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+            <div class="card-header bg-white border-bottom p-3.5 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined text-primary fs-5">inventory</span>
+                    <h6 class="mb-0 fw-bold text-dark">Package Items Checklist ({{ items.count }})</h6>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr class="small text-muted text-uppercase" style="font-size: 0.75rem;">
+                            <th class="ps-4">Product Details</th>
+                            <th>Seller / Merchant</th>
+                            <th>Qty</th>
+                            <th class="text-end pe-4">Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-semibold text-dark">{{ item.product_name }}</div>
+                                <span class="small text-muted">Brand: {{ item.brand|default:"TechMart Certified" }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">
+                                    {{ item.seller.store_name|default:item.seller.username|default:"TechMart Direct" }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary-subtle text-secondary px-2 py-1 fw-bold">
+                                    {{ item.quantity }}x
+                                </span>
+                            </td>
+                            <td class="text-end pe-4 fw-bold text-dark">
+                                ₹{{ item.line_total|floatformat:2|intcomma }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Customer Destination & Pickup Hubs -->
+    <div class="col-lg-4">
+        <!-- Customer Delivery Address Card -->
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mb-4">
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                <span class="material-symbols-outlined text-primary fs-5">home_pin</span>
+                <h6 class="mb-0 fw-bold text-dark">Customer Delivery Destination</h6>
+            </div>
+
+            <div class="mb-3">
+                <span class="text-muted small text-uppercase fw-semibold d-block">Recipient Name</span>
+                <span class="fw-bold text-dark fs-6">{{ order.shipping_name }}</span>
+            </div>
+
+            <div class="mb-3">
+                <span class="text-muted small text-uppercase fw-semibold d-block">Contact Phone</span>
+                <a href="tel:{{ order.shipping_phone }}" class="text-decoration-none fw-bold text-primary fs-6 d-inline-flex align-items-center gap-1">
+                    <span class="material-symbols-outlined fs-6">call</span>
+                    <span>{{ order.shipping_phone }}</span>
+                </a>
+            </div>
+
+            <div class="mb-3">
+                <span class="text-muted small text-uppercase fw-semibold d-block">Complete Address</span>
+                <p class="text-dark small mb-1 fw-medium">
+                    {{ order.shipping_address_line1 }}
+                    {% if order.shipping_address_line2 %}<br>{{ order.shipping_address_line2 }}{% endif %}
+                </p>
+                {% if order.shipping_landmark %}
+                <span class="badge bg-light text-muted border small d-inline-block mb-1">
+                    Landmark: {{ order.shipping_landmark }}
+                </span>
+                {% endif %}
+                <div class="fw-bold text-dark small mt-1">
+                    {{ order.shipping_city }}, {{ order.shipping_state }} - {{ order.shipping_pincode }}
+                </div>
+            </div>
+
+            <a href="https://maps.google.com/?q={{ order.shipping_address_line1|urlencode }}+{{ order.shipping_city|urlencode }}+{{ order.shipping_pincode|urlencode }}" target="_blank" class="btn btn-outline-primary btn-sm w-100 rounded-3 fw-semibold d-flex align-items-center justify-content-center gap-1">
+                <span class="material-symbols-outlined fs-6">map</span>
+                <span>Open in Google Maps</span>
+            </a>
+        </div>
+
+        <!-- Payment Details Card -->
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mb-4">
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                <span class="material-symbols-outlined text-success fs-5">payments</span>
+                <h6 class="mb-0 fw-bold text-dark">Payment Collection</h6>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small">Total Package Value</span>
+                <span class="fw-bold text-dark fs-5">₹{{ order.total_amount|floatformat:2|intcomma }}</span>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small">Payment Method</span>
+                <span class="fw-semibold text-dark small">{{ order.get_payment_method_display }}</span>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="text-muted small">Collection Status</span>
+                {% if order.payment_status == 'PAID' %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                        PAID - Do Not Collect Cash
+                    </span>
+                {% else %}
+                    <span class="badge bg-warning-subtle text-dark border border-warning fw-bold">
+                        Collect ₹{{ order.total_amount|floatformat:2|intcomma }} Cash
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Seller Pickup Hubs -->
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+            <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                <span class="material-symbols-outlined text-secondary fs-5">storefront</span>
+                <h6 class="mb-0 fw-bold text-dark">Seller Pickup Details</h6>
+            </div>
+
+            {% if sellers %}
+                {% for seller in sellers %}
+                <div class="mb-3 {% if not forloop.last %}pb-3 border-bottom{% endif %}">
+                    <div class="fw-bold text-dark small">{{ seller.store_name|default:seller.username }}</div>
+                    {% if seller.phone %}
+                    <div class="small text-muted">Phone: <a href="tel:{{ seller.phone }}" class="text-decoration-none text-primary">{{ seller.phone }}</a></div>
+                    {% endif %}
+                    {% if seller.email %}
+                    <div class="small text-muted">Email: {{ seller.email }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="small text-muted mb-0">TechMart Central Fulfillment Warehouse (Bhiwandi Central Hub).</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

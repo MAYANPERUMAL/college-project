@@ -1,0 +1,480 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Order #{{ order.order_number }} - Tech Mart{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 px-xl-5 my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3 small">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'order_history' %}" class="text-decoration-none">Orders</a></li>
+            <li class="breadcrumb-item active" aria-current="page">#{{ order.order_number }}</li>
+        </ol>
+    </nav>
+
+    <!-- Top Action Strip -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold mb-1 d-flex align-items-center gap-2">
+                <span>Order #{{ order.order_number }}</span>
+                <span class="badge {% if order.order_status == 'DELIVERED' %}bg-success{% elif order.order_status == 'CANCELLED' %}bg-danger{% else %}bg-primary{% endif %} fs-6">
+                    {{ order.get_order_status_display }}
+                </span>
+            </h3>
+            <span class="text-muted small">Placed on {{ order.created_at|date:"d M Y, h:i A" }} • Payment: {{ order.get_payment_method_display }} ({{ order.get_payment_status_display }})</span>
+        </div>
+        <div class="d-flex gap-2">
+            {% if order.can_cancel %}
+            <button type="button" class="btn btn-outline-danger d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#cancelDetailOrderModal">
+                <span class="material-symbols-outlined fs-5">cancel</span> Cancel Order
+            </button>
+            {% endif %}
+            {% if order.order_status == 'CANCELLED' or order.order_status == 'DELIVERED' %}
+            <button type="button" class="btn btn-outline-danger d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#deleteDetailOrderModal">
+                <span class="material-symbols-outlined fs-5">delete</span> Delete Order
+            </button>
+            {% endif %}
+            <a href="{% url 'order_invoice' order_number=order.order_number %}" target="_blank" class="btn btn-outline-primary d-flex align-items-center gap-1">
+                <span class="material-symbols-outlined fs-5">receipt_long</span> Download GST Invoice
+            </a>
+            <a href="{% url 'order_history' %}" class="btn btn-light border d-flex align-items-center gap-1">
+                <span class="material-symbols-outlined fs-5">arrow_back</span> Back to Orders
+            </a>
+        </div>
+    </div>
+
+    {% if order.order_status == 'CANCELLED' %}
+    <!-- Cancelled Order Status Card -->
+    <div class="card border border-danger rounded-4 shadow-sm bg-white overflow-hidden mb-4">
+        <div class="p-4 bg-danger bg-opacity-10 border-bottom border-danger-subtle">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-danger text-white p-3 d-flex align-items-center justify-content-center shadow-sm">
+                        <span class="material-symbols-outlined fs-2">cancel</span>
+                    </div>
+                    <div>
+                        <span class="badge bg-danger text-white fw-bold mb-1">ORDER CANCELLED</span>
+                        <h4 class="fw-bold text-danger mb-1">Order #{{ order.order_number }} Has Been Cancelled</h4>
+                        <p class="text-muted small mb-0">
+                            Cancelled on {{ order.updated_at|date:"d M Y, h:i A" }}
+                            {% if order.cancellation_reason %}
+                            • Reason: <strong class="text-dark">{{ order.cancellation_reason }}</strong>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="text-md-end">
+                    {% if order.payment_status == 'REFUNDED' %}
+                    <span class="badge bg-success text-white fw-bold px-3 py-2 fs-6 mb-1 d-inline-flex align-items-center gap-1">
+                        <span class="material-symbols-outlined fs-6">currency_rupee</span>
+                        Refund Initiated: ₹{{ order.total_amount|intcomma }}
+                    </span>
+                    <small class="text-muted d-block" style="font-size: 0.72rem;">Credited to original {{ order.get_payment_method_display }} within 2-4 business days</small>
+                    {% else %}
+                    <span class="badge bg-secondary text-white fw-bold px-3 py-2 fs-6 mb-1">Cash on Delivery</span>
+                    <small class="text-muted d-block" style="font-size: 0.72rem;">No payment deduction occurred</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="p-4 bg-light">
+            <div class="d-flex align-items-center gap-2 text-muted small">
+                <span class="material-symbols-outlined fs-5 text-secondary">info</span>
+                <span>The shipment was halted and inventory stock has been restored to the warehouse. If you have questions regarding refunds, contact our 24x7 helpdesk at 1800-200-8324.</span>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Live Tracking Card -->
+    <div class="card border rounded-4 shadow-sm bg-white overflow-hidden mb-4">
+        <div class="p-4 bg-light border-bottom">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div>
+                    <span class="badge bg-warning text-dark fw-bold mb-1">LIVE LOGISTICS TRACKING</span>
+                    <h4 class="fw-bold text-dark mb-1">{{ order.get_order_status_display }}</h4>
+                    <p class="text-muted small mb-0">
+                        Courier: <strong>{{ order.courier_name }}</strong> (AWB: {{ order.tracking_number }}) • Current Location: <strong>{{ order.current_location }}</strong>
+                    </p>
+                </div>
+
+                <!-- Secure Handover PIN Box -->
+                <div class="tm-pin-card p-3 bg-white rounded-4 border text-center">
+                    <span class="small text-muted fw-bold d-block" style="font-size: 0.7rem;">DOORSTEP DELIVERY PIN</span>
+                    <div class="d-flex justify-content-center gap-1 my-1">
+                        {% for digit in order.delivery_pin %}
+                        <span class="tm-pin-digit">{{ digit }}</span>
+                        {% endfor %}
+                    </div>
+                    <small class="text-muted d-block" style="font-size: 0.68rem;">Share with delivery agent after inspection</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modern Logistics Journey Tracker -->
+        <div class="px-3 px-md-4 pt-3 pb-3 bg-light border-bottom">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge {% if order.order_status == 'DELIVERED' %}bg-success text-white{% else %}bg-success text-white{% endif %} px-2.5 py-1.5 fw-bold" style="font-size: 0.72rem; border-radius: 6px;">
+                        {% if order.order_status == 'CONFIRMED' %}STAGE 1 OF 4 • ORDER CONFIRMED
+                        {% elif order.order_status == 'PACKED' %}STAGE 2 OF 4 • PACKED & READY
+                        {% elif order.order_status == 'IN_TRANSIT' %}STAGE 3 OF 4 • ON THE ROAD
+                        {% elif order.order_status == 'OUT_FOR_DELIVERY' %}STAGE 4 OF 4 • OUT FOR DELIVERY
+                        {% elif order.order_status == 'DELIVERED' %}✓ SHIPMENT DELIVERED
+                        {% else %}STAGE {{ order.step_number }} OF 4{% endif %}
+                    </span>
+                    <span class="text-muted small fw-medium">
+                        <span class="material-symbols-outlined align-middle fs-6 text-muted">schedule</span>
+                        Estimated: <strong class="text-dark">{{ order.estimated_delivery_text }}</strong>
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-white text-dark border fw-bold px-2.5 py-1" style="font-size: 0.75rem;">
+                        {% if order.order_status == 'CONFIRMED' %}25% Completed
+                        {% elif order.order_status == 'PACKED' %}50% Completed
+                        {% elif order.order_status == 'IN_TRANSIT' %}75% Completed
+                        {% elif order.order_status == 'OUT_FOR_DELIVERY' %}90% Completed
+                        {% elif order.order_status == 'DELIVERED' %}100% Completed
+                        {% else %}25% Completed{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Smooth Progress Bar -->
+            <div class="progress" style="height: 8px; border-radius: 50px; background-color: #e2e8f0;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" 
+                     style="width: {% if order.order_status == 'CONFIRMED' %}25%{% elif order.order_status == 'PACKED' %}50%{% elif order.order_status == 'IN_TRANSIT' %}75%{% elif order.order_status == 'OUT_FOR_DELIVERY' %}90%{% else %}100%{% endif %}; border-radius: 50px;" 
+                     aria-valuenow="{% if order.order_status == 'CONFIRMED' %}25{% elif order.order_status == 'PACKED' %}50{% elif order.order_status == 'IN_TRANSIT' %}75{% elif order.order_status == 'OUT_FOR_DELIVERY' %}90{% else %}100{% endif %}" 
+                     aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </div>
+
+        <!-- 4 Milestone Stage Cards -->
+        <div class="p-3 p-md-4 bg-white">
+            <div class="row g-3">
+                <!-- Stage 1: Order Confirmed -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="h-100 p-3 rounded-3 border transition {% if order.step_number > 1 %}bg-white border-success-subtle shadow-sm{% elif order.step_number == 1 %}bg-success-subtle border-success shadow{% else %}bg-light text-muted border-light-subtle{% endif %}" style="border-width: {% if order.step_number == 1 %}2px{% else %}1.5px{% endif %} !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="rounded-circle {% if order.step_number >= 1 %}bg-success text-white shadow-sm{% else %}bg-secondary-subtle text-muted border{% endif %} d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                <span class="material-symbols-outlined fs-5">{% if order.step_number > 1 %}check{% else %}shopping_bag{% endif %}</span>
+                            </div>
+                            {% if order.step_number > 1 %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold" style="font-size: 0.68rem;">✓ Done</span>
+                            {% elif order.step_number == 1 %}
+                            <span class="badge bg-success text-white fw-bold d-inline-flex align-items-center gap-1" style="font-size: 0.68rem;">
+                                <span class="spinner-grow spinner-grow-sm" style="width: 6px; height: 6px;"></span> Active
+                            </span>
+                            {% else %}
+                            <span class="badge bg-light text-muted border" style="font-size: 0.68rem;">Pending</span>
+                            {% endif %}
+                        </div>
+                        <div class="fw-bold text-dark" style="font-size: 0.95rem;">Order Confirmed</div>
+                        <div class="text-muted small mt-1" style="font-size: 0.75rem;">{{ order.created_at|date:"d M, h:i A" }}</div>
+                        <div class="mt-2 pt-2 border-top small" style="font-size: 0.72rem;">
+                            {% if order.step_number >= 1 %}
+                            <span class="text-success fw-medium d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined" style="font-size: 14px;">verified</span> Verified & Placed
+                            </span>
+                            {% else %}
+                            <span class="text-muted">Awaiting confirmation</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage 2: Packed & Sealed -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="h-100 p-3 rounded-3 border transition {% if order.step_number > 2 %}bg-white border-success-subtle shadow-sm{% elif order.step_number == 2 %}bg-success-subtle border-success shadow{% else %}bg-light text-muted border-light-subtle{% endif %}" style="border-width: {% if order.step_number == 2 %}2px{% else %}1.5px{% endif %} !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="rounded-circle {% if order.step_number >= 2 %}bg-success text-white shadow-sm{% else %}bg-secondary-subtle text-muted border{% endif %} d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                <span class="material-symbols-outlined fs-5">{% if order.step_number > 2 %}check{% else %}inventory_2{% endif %}</span>
+                            </div>
+                            {% if order.step_number > 2 %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold" style="font-size: 0.68rem;">✓ Packed</span>
+                            {% elif order.step_number == 2 %}
+                            <span class="badge bg-success text-white fw-bold d-inline-flex align-items-center gap-1" style="font-size: 0.68rem;">
+                                <span class="spinner-grow spinner-grow-sm" style="width: 6px; height: 6px;"></span> Packaging
+                            </span>
+                            {% else %}
+                            <span class="badge bg-light text-muted border" style="font-size: 0.68rem;">Upcoming</span>
+                            {% endif %}
+                        </div>
+                        <div class="fw-bold text-dark" style="font-size: 0.95rem;">Packed & Sealed</div>
+                        <div class="text-muted small mt-1" style="font-size: 0.75rem;">Bhiwandi Hub</div>
+                        <div class="mt-2 pt-2 border-top small" style="font-size: 0.72rem;">
+                            {% if order.step_number >= 2 %}
+                            <span class="text-success fw-medium d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined" style="font-size: 14px;">shield_lock</span> Tamper Seal Verified
+                            </span>
+                            {% else %}
+                            <span class="text-muted">Warehouse queue</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage 3: In Transit -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="h-100 p-3 rounded-3 border transition {% if order.step_number > 3 %}bg-white border-success-subtle shadow-sm{% elif order.step_number == 3 %}bg-success-subtle border-success shadow{% else %}bg-light text-muted border-light-subtle{% endif %}" style="border-width: {% if order.step_number == 3 %}2px{% else %}1.5px{% endif %} !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="rounded-circle {% if order.step_number >= 3 %}bg-success text-white shadow-sm{% else %}bg-secondary-subtle text-muted border{% endif %} d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                <span class="material-symbols-outlined fs-5">{% if order.step_number > 3 %}check{% else %}local_shipping{% endif %}</span>
+                            </div>
+                            {% if order.step_number > 3 %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold" style="font-size: 0.68rem;">✓ Passed</span>
+                            {% elif order.step_number == 3 %}
+                            <span class="badge bg-success text-white fw-bold d-inline-flex align-items-center gap-1" style="font-size: 0.68rem;">
+                                <span class="spinner-grow spinner-grow-sm" style="width: 6px; height: 6px;"></span> On Route
+                            </span>
+                            {% else %}
+                            <span class="badge bg-light text-muted border" style="font-size: 0.68rem;">Upcoming</span>
+                            {% endif %}
+                        </div>
+                        <div class="fw-bold text-dark" style="font-size: 0.95rem;">In Transit</div>
+                        <div class="text-truncate small mt-1 {% if order.step_number == 3 %}text-primary fw-semibold{% else %}text-muted{% endif %}" style="font-size: 0.75rem;" title="{{ order.current_location }}">{{ order.current_location }}</div>
+                        <div class="mt-2 pt-2 border-top small" style="font-size: 0.72rem;">
+                            {% if order.step_number >= 3 %}
+                            <span class="text-success fw-medium d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined" style="font-size: 14px;">near_me</span> Fast Express Road
+                            </span>
+                            {% else %}
+                            <span class="text-muted">Awaiting dispatch</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage 4: Out for Delivery -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="h-100 p-3 rounded-3 border transition {% if order.step_number >= 5 %}bg-white border-success-subtle shadow-sm{% elif order.step_number == 4 %}bg-success-subtle border-success shadow{% else %}bg-light text-muted border-light-subtle{% endif %}" style="border-width: {% if order.step_number == 4 or order.step_number == 5 %}2px{% else %}1.5px{% endif %} !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="rounded-circle {% if order.step_number >= 4 %}bg-success text-white shadow-sm{% else %}bg-secondary-subtle text-muted border{% endif %} d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                <span class="material-symbols-outlined fs-5">{% if order.step_number >= 5 %}check{% elif order.step_number == 4 %}directions_bike{% else %}home{% endif %}</span>
+                            </div>
+                            {% if order.step_number >= 5 %}
+                            <span class="badge bg-success text-white fw-bold" style="font-size: 0.68rem;">✓ DELIVERED</span>
+                            {% elif order.step_number == 4 %}
+                            <span class="badge bg-success text-white fw-bold d-inline-flex align-items-center gap-1" style="font-size: 0.68rem;">
+                                <span class="spinner-grow spinner-grow-sm" style="width: 6px; height: 6px;"></span> At Doorstep
+                            </span>
+                            {% else %}
+                            <span class="badge bg-light text-muted border" style="font-size: 0.68rem;">Upcoming</span>
+                            {% endif %}
+                        </div>
+                        <div class="fw-bold text-dark" style="font-size: 0.95rem;">Out for Delivery</div>
+                        <div class="text-muted small mt-1" style="font-size: 0.75rem;">{{ order.estimated_delivery_text }}</div>
+                        <div class="mt-2 pt-2 border-top small" style="font-size: 0.72rem;">
+                            {% if order.step_number >= 5 %}
+                            <span class="text-success fw-bold d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined" style="font-size: 14px;">task_alt</span> Handed Over
+                            </span>
+                            {% elif order.step_number == 4 %}
+                            <span class="text-success fw-bold d-flex align-items-center gap-1">
+                                <span class="material-symbols-outlined" style="font-size: 14px;">key</span> PIN: {{ order.delivery_pin }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">Doorstep Delivery</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Items & Address Grid -->
+    <div class="row g-4 mb-4">
+        <!-- Ordered Items Table -->
+        <div class="col-lg-8">
+            <div class="card border rounded-4 shadow-sm bg-white overflow-hidden">
+                <div class="p-3 bg-light border-bottom">
+                    <h6 class="fw-bold mb-0">Items in This Shipment ({{ items.count }})</h6>
+                </div>
+                <div class="p-3">
+                    {% for item in items %}
+                    <div class="d-flex align-items-center justify-content-between py-3 {% if not forloop.last %}border-bottom{% endif %}">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-3 bg-light p-2 border d-flex align-items-center justify-content-center" style="width: 68px; height: 68px;">
+                                {% if item.image_url %}
+                                <img src="{{ item.image_url }}" alt="{{ item.product_name }}" class="img-fluid" style="max-height: 54px; object-fit: contain;">
+                                {% else %}
+                                <span class="material-symbols-outlined text-muted fs-3">devices</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <span class="badge bg-success-subtle text-success small" style="font-size: 0.65rem;">{{ item.warranty_info }}</span>
+                                <h6 class="fw-bold mb-1 mt-1">{{ item.product_name }}</h6>
+                                <div class="small text-muted">
+                                    Qty: <strong>{{ item.quantity }}</strong> × ₹{{ item.price|intcomma }}
+                                    {% if item.model_number %} • Model: {{ item.model_number }}{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="fw-bold font-heading fs-6 text-primary">₹{{ item.line_total|intcomma }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Delivery & Payment Information -->
+        <div class="col-lg-4">
+            <!-- Shipping Address -->
+            <div class="card border rounded-4 p-4 shadow-sm bg-white mb-4">
+                <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined text-primary fs-5">location_on</span>
+                    <span>Delivery Address</span>
+                </h6>
+                <strong class="d-block text-dark">{{ order.shipping_name }}</strong>
+                <p class="small text-muted mb-2">
+                    {{ order.shipping_address_line1 }}<br>
+                    {% if order.shipping_address_line2 %}{{ order.shipping_address_line2 }}<br>{% endif %}
+                    {% if order.shipping_landmark %}Near {{ order.shipping_landmark }}<br>{% endif %}
+                    {{ order.shipping_city }}, {{ order.shipping_state }} - <strong>{{ order.shipping_pincode }}</strong>
+                </p>
+                <div class="small text-muted">
+                    <span class="material-symbols-outlined fs-6 align-middle">call</span> Phone: {{ order.shipping_phone }}
+                </div>
+            </div>
+
+            <!-- Payment Summary -->
+            <div class="card border rounded-4 p-4 shadow-sm bg-white">
+                <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined text-primary fs-5">receipt</span>
+                    <span>Payment Breakdown</span>
+                </h6>
+                <div class="d-flex justify-content-between mb-2 small text-muted">
+                    <span>Items Subtotal</span>
+                    <span>₹{{ order.subtotal|intcomma }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 small text-muted">
+                    <span>Delivery Charges</span>
+                    <span class="text-success fw-bold">FREE</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 small text-muted">
+                    <span>GST (18% included)</span>
+                    <span>₹{{ order.gst_amount|intcomma }}</span>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between fw-bold fs-5 text-dark">
+                    <span>Total Paid</span>
+                    <span class="text-primary font-heading">₹{{ order.total_amount|intcomma }}</span>
+                </div>
+                <div class="small text-muted mt-2">
+                    Payment Method: <span class="badge bg-light text-dark border">{{ order.get_payment_method_display }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if order.can_cancel %}
+<!-- Customer Cancel Order Modal -->
+<div class="modal fade" id="cancelDetailOrderModal" tabindex="-1" aria-labelledby="cancelDetailOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom pb-3">
+                <h5 class="modal-title font-heading fw-bold d-flex align-items-center gap-2 text-danger" id="cancelDetailOrderModalLabel">
+                    <span class="material-symbols-outlined">warning</span>
+                    Cancel Order #{{ order.order_number }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'customer_cancel_order' order_number=order.order_number %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <div class="modal-body p-4">
+                    {% if order.payment_status == 'PAID' %}
+                    <div class="alert alert-info border-0 rounded-3 mb-3 d-flex align-items-start gap-2">
+                        <span class="material-symbols-outlined text-info mt-1">currency_rupee</span>
+                        <div>
+                            <strong>Full Refund of ₹{{ order.total_amount|intcomma }}</strong>
+                            <div class="small">The refund will be credited back to your original payment method ({{ order.get_payment_method_display }}) within 2-4 business days.</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-light border rounded-3 mb-3 d-flex align-items-start gap-2">
+                        <span class="material-symbols-outlined text-muted mt-1">info</span>
+                        <div>
+                            <strong>Cash on Delivery Order</strong>
+                            <div class="small text-muted">No advance payment was taken. This order shipment will be halted immediately.</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <p class="text-secondary small mb-3">
+                        Please select a reason for cancelling this order:
+                    </p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Reason for Cancellation <span class="text-danger">*</span></label>
+                        <select name="cancellation_reason" class="form-select" required>
+                            <option value="" selected disabled>Select a reason...</option>
+                            <option value="Ordered by mistake / Change of mind">Ordered by mistake / Change of mind</option>
+                            <option value="Expected delivery time is too long">Expected delivery time is too long</option>
+                            <option value="Found better price / deal elsewhere">Found better price / deal elsewhere</option>
+                            <option value="Need to change shipping address or mobile number">Need to change shipping address or mobile number</option>
+                            <option value="Ordered wrong product variant or model">Ordered wrong product variant or model</option>
+                            <option value="Decided to buy later">Decided to buy later</option>
+                            <option value="Other reasons">Other reasons</option>
+                        </select>
+                    </div>
+
+                    <div class="form-check p-3 bg-light rounded-3 border">
+                        <input class="form-check-input ms-0 me-2" type="checkbox" id="confirmCancelCheckDetail" required>
+                        <label class="form-check-label small text-muted" for="confirmCancelCheckDetail">
+                            I confirm that I want to cancel this order and understand that this action cannot be undone.
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-outline-secondary fw-semibold px-3" data-bs-dismiss="modal">Don't Cancel</button>
+                    <button type="submit" class="btn btn-danger fw-semibold px-4 d-flex align-items-center gap-1">
+                        <span class="material-symbols-outlined fs-6">check</span>
+                        <span>Confirm Cancellation</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+<!-- Customer Delete Order Modal -->
+<div class="modal fade" id="deleteDetailOrderModal" tabindex="-1" aria-labelledby="deleteDetailOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom pb-3">
+                <h5 class="modal-title font-heading fw-bold d-flex align-items-center gap-2 text-danger" id="deleteDetailOrderModalLabel">
+                    <span class="material-symbols-outlined">delete</span>
+                    Delete Order #{{ order.order_number }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'customer_delete_order' order_number=order.order_number %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <p class="text-secondary mb-2">
+                        Are you sure you want to permanently delete order <strong class="text-dark">#{{ order.order_number }}</strong> (₹{{ order.total_amount|intcomma }}) from your account history?
+                    </p>
+                    <div class="alert alert-light border rounded-3 small mb-0 text-muted">
+                        Status: <strong>{{ order.get_order_status_display }}</strong> • Placed on {{ order.created_at|date:"d M Y, h:i A" }}
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-outline-secondary fw-semibold px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger fw-semibold px-4 d-flex align-items-center gap-1">
+                        <span class="material-symbols-outlined fs-6">delete</span>
+                        <span>Delete Order</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

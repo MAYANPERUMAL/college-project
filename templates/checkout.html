@@ -1,0 +1,2351 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}Checkout - Flipkart Style Secure Payment | Tech Mart{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Flipkart Style Checkout Polish */
+    .checkout-step-header {
+        background-color: var(--tm-forest-green, #1e463a);
+        color: #ffffff;
+        font-family: var(--tm-font-heading, 'Newsreader', serif);
+        letter-spacing: 0.5px;
+    }
+
+    .payment-option-card {
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        background: #ffffff;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .payment-option-card:hover {
+        border-color: #1e463a;
+        background-color: #fafcfb;
+    }
+
+    .payment-option-card.active-payment {
+        border: 2px solid #1e463a !important;
+        background-color: #f7faf8 !important;
+        box-shadow: 0 4px 14px rgba(30, 70, 58, 0.12);
+    }
+
+    .price-details-card {
+        background: #ffffff;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        z-index: 5 !important;
+    }
+
+    .price-details-header {
+        font-size: 0.85rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+        color: #64748b;
+        text-transform: uppercase;
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 12px;
+    }
+
+    .savings-badge-box {
+        background-color: #ecfdf5;
+        border: 1px dashed #10b981;
+        color: #065f46;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 0.88rem;
+        font-weight: 600;
+    }
+
+    .bank-tile {
+        cursor: pointer;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px 12px;
+        transition: all 0.2s ease;
+        text-align: center;
+        background: #ffffff;
+    }
+
+    .bank-tile:hover,
+    .bank-tile.selected {
+        border-color: var(--tm-forest-green, #1e463a);
+        background: #f0fdf4;
+    }
+
+    .nb-account-card {
+        cursor: pointer;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        background: #ffffff;
+    }
+
+    .nb-account-card:hover,
+    .nb-account-card.active-account-card {
+        border-color: var(--tm-forest-green, #1e463a) !important;
+        background: #f0fdf4 !important;
+    }
+
+    .cod-verification-box {
+        background: #fffdf5;
+        border: 1.5px solid #fde68a;
+        border-radius: 12px;
+        padding: 16px;
+    }
+
+    .otp-input-large {
+        font-size: 1.5rem;
+        letter-spacing: 8px;
+        font-weight: 700;
+        text-align: center;
+        max-width: 260px;
+    }
+
+    /* UPI App Tiles */
+    .upi-app-badge {
+        transition: all 0.2s ease;
+        position: relative;
+        user-select: none;
+    }
+
+    .upi-app-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    .upi-app-badge.active {
+        border-color: #1e463a !important;
+        background-color: #f0fdf4 !important;
+        box-shadow: 0 0 0 1px #1e463a;
+    }
+
+    .upi-app-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+
+    .upi-qr-card {
+        background: #ffffff;
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 px-xl-5 my-4">
+    <!-- Top Progress Bar / Breadcrumb -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <h3 class="fw-bold mb-0 d-flex align-items-center gap-2 font-heading" style="color: #1e463a;">
+            <span class="material-symbols-outlined fs-2">verified_user</span>
+            <span>Order Checkout & Payment</span>
+        </h3>
+        <div class="d-flex align-items-center gap-2 text-muted small">
+            <span class="text-success fw-bold d-flex align-items-center gap-1">
+                <span class="material-symbols-outlined fs-6">check_circle</span> 1. Cart
+            </span>
+            <span>→</span>
+            <span class="text-success fw-bold d-flex align-items-center gap-1">
+                <span class="material-symbols-outlined fs-6">check_circle</span> 2. Address
+            </span>
+            <span>→</span>
+            <span class="fw-bold px-2 py-1 rounded" style="background: #1e463a; color: #fff;">
+                3. Payment & Verification
+            </span>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm"
+            role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined fs-5">
+                    {% if message.tags == 'error' %}error{% elif message.tags == 'success' %}check_circle{% else %}info{% endif %}
+                </span>
+                <span>{{ message }}</span>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'checkout' %}" id="checkout-form" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="cod_otp" id="final_cod_otp" value="">
+        <input type="hidden" name="upi_app_selected" id="upi_app_selected" value="gpay">
+        <input type="hidden" name="bank_name" id="selected_bank_name" value="HDFC Bank">
+
+        <div class="row g-4">
+            <!-- Left Column: Flipkart-Style Accordion Steps -->
+            <div class="col-lg-8">
+                <!-- STEP 1: USER LOGIN / AUTH STATUS -->
+                <div class="card border rounded-3 shadow-sm mb-3 overflow-hidden">
+                    <div class="p-3 bg-light d-flex justify-content-between align-items-center border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge rounded-circle p-2"
+                                style="background: #1e463a; color: #fff; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">1</span>
+                            <span class="fw-bold small text-muted text-uppercase">LOGIN / CUSTOMER ACCOUNT</span>
+                            <span class="material-symbols-outlined text-success fs-6">check_circle</span>
+                        </div>
+                        <span class="badge bg-success-subtle text-success fw-bold">VERIFIED</span>
+                    </div>
+                    <div class="p-3 bg-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div>
+                            <strong class="text-dark">{{ user.get_full_name|default:user.username }}</strong>
+                            <span class="text-muted small ms-2">+91 {{ user.phone|default:'Customer' }} • {{ user.email }}</span>
+                        </div>
+                        <span class="small text-muted">Role: Customer</span>
+                    </div>
+                </div>
+
+                <!-- STEP 2: DELIVERY ADDRESS -->
+                <div class="card border rounded-3 shadow-sm mb-3 overflow-hidden">
+                    <div class="p-3 d-flex justify-content-between align-items-center text-white"
+                        style="background: #1e463a;">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-white text-dark rounded-circle"
+                                style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">2</span>
+                            <span class="fw-bold small text-uppercase">DELIVERY ADDRESS</span>
+                        </div>
+                        <span class="small text-white-50">Select or Add New</span>
+                    </div>
+
+                    <div class="p-4 bg-white">
+                        {% if addresses %}
+                        <div class="row g-3 mb-3" id="saved-address-container">
+                            {% for addr in addresses %}
+                            <div class="col-md-6">
+                                <div class="card h-100 p-3 border rounded-3 position-relative address-card {% if addr.is_default or forloop.first %}border-success bg-light bg-opacity-50{% endif %}"
+                                    style="cursor: pointer;">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <input type="radio" name="selected_address" id="addr_{{ addr.id }}" value="{{ addr.id }}" class="form-check-input mt-1 address-radio" {% if addr.is_default or forloop.first %}checked{% endif %} data-phone="{{ addr.phone }}">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <label for="addr_{{ addr.id }}" class="fw-bold text-dark mb-0 cursor-pointer d-block">{{ addr.full_name }}</label>
+                                                <span class="badge bg-secondary-subtle text-secondary small">{{ addr.get_address_type_display }}</span>
+                                            </div>
+                                            <label for="addr_{{ addr.id }}" class="small text-muted mt-1 d-block cursor-pointer">
+                                                {{ addr.address_line1 }}{% if addr.address_line2 %}, {{ addr.address_line2 }}{% endif %}{% if addr.landmark %}, Near {{ addr.landmark }}{% endif %}<br>
+                                                {{ addr.city }}, {{ addr.state }} - <strong>{{ addr.pincode }}</strong>
+                                            </label>
+                                            <div
+                                                class="small text-muted mt-2 d-flex align-items-center justify-content-between pt-2 border-top">
+                                                <span><span
+                                                        class="material-symbols-outlined fs-6 align-middle">call</span>
+                                                    {{ addr.phone }}</span>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <button type="button"
+                                                        class="btn btn-sm btn-outline-dark py-0 px-2 fw-semibold d-inline-flex align-items-center gap-1"
+                                                        data-bs-toggle="modal" data-bs-target="#editModal{{ addr.id }}"
+                                                        onclick="event.stopPropagation();">
+                                                        <span class="material-symbols-outlined fs-6">edit</span> Edit
+                                                    </button>
+                                                    <button type="button"
+                                                        class="btn btn-sm btn-outline-danger py-0 px-2 fw-semibold d-inline-flex align-items-center gap-1"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#deleteAddressModal{{ addr.id }}"
+                                                        onclick="event.stopPropagation();">
+                                                        <span class="material-symbols-outlined fs-6">delete</span>
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="form-check mb-2">
+                            <input class="form-check-input address-radio" type="radio" name="selected_address"
+                                id="addr_new" value="new">
+                            <label class="form-check-label fw-bold small text-primary cursor-pointer" for="addr_new">
+                                + Add a new delivery address
+                            </label>
+                        </div>
+                        {% endif %}
+
+                        <!-- New Address Form (Hidden by default if saved addresses exist) -->
+                        <div id="new-address-section" class="{% if addresses %}d-none{% endif %} border-top pt-3 mt-3">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2" style="color: #1e463a;">
+                                <span class="material-symbols-outlined fs-5">add_location_alt</span>
+                                <span>Add New Shipping Address</span>
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Recipient Full Name *</label>
+                                    <input type="text" name="full_name" class="form-control new-addr-input"
+                                        placeholder="Recipient's Name"
+                                        value="{{ address_form.full_name.value|default:'' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">10-Digit Mobile Number *</label>
+                                    <input type="text" name="phone" id="new_address_phone"
+                                        class="form-control new-addr-input" placeholder="10-digit mobile number"
+                                        value="{{ address_form.phone.value|default:'' }}">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold">Flat, House no., Building, Apartment
+                                        *</label>
+                                    <input type="text" name="address_line1" class="form-control new-addr-input"
+                                        placeholder="Flat / House no. / Apartment"
+                                        value="{{ address_form.address_line1.value|default:'' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Area, Street, Sector</label>
+                                    <input type="text" name="address_line2" class="form-control new-addr-input"
+                                        placeholder="Area, Colony, Street"
+                                        value="{{ address_form.address_line2.value|default:'' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Landmark (Optional)</label>
+                                    <input type="text" name="landmark" class="form-control new-addr-input"
+                                        placeholder="Nearby Landmark (e.g. Near Apollo Hospital)"
+                                        value="{{ address_form.landmark.value|default:'' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">City / District *</label>
+                                    <input type="text" name="city" class="form-control new-addr-input"
+                                        placeholder="City" value="{{ address_form.city.value|default:'' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">State *</label>
+                                    <input type="text" name="state" class="form-control new-addr-input"
+                                        placeholder="State" value="{{ address_form.state.value|default:'' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">6-Digit PIN Code *</label>
+                                    <input type="text" name="pincode" class="form-control new-addr-input"
+                                        placeholder="6-digit PIN code" maxlength="6"
+                                        value="{{ address_form.pincode.value|default:'' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Address Type</label>
+                                    <select name="address_type" class="form-select new-addr-input">
+                                        <option value="HOME">Home (All day delivery)</option>
+                                        <option value="OFFICE">Office (Delivery 9 AM - 6 PM)</option>
+                                        <option value="OTHER">Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 d-flex align-items-center mt-4">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="is_default" class="form-check-input new-addr-input"
+                                            id="new_is_default" checked>
+                                        <label class="form-check-label small" for="new_is_default">Save as default
+                                            address</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3: ORDER SUMMARY PREVIEW (Collapsible with Select & Delete options) -->
+                <div class="card border rounded-3 shadow-sm mb-3 overflow-hidden">
+                    <div class="p-3 bg-light d-flex justify-content-between align-items-center border-bottom cursor-pointer"
+                        data-bs-toggle="collapse" data-bs-target="#orderItemsCollapse">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge rounded-circle p-2"
+                                style="background: #1e463a; color: #fff; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">3</span>
+                            <span class="fw-bold small text-muted text-uppercase">ORDER SUMMARY (<span id="summary-header-count">{{ cart.total_items }}</span>
+                                Item{{ cart.total_items|pluralize }})</span>
+                        </div>
+                        <span class="small text-primary fw-semibold d-flex align-items-center gap-1">
+                            <span>View / Manage Items</span>
+                            <span class="material-symbols-outlined fs-6">expand_more</span>
+                        </span>
+                    </div>
+                    <div class="collapse show" id="orderItemsCollapse">
+                        <!-- Select & Delete Toolbar -->
+                        <div class="p-2 px-3 bg-light border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="form-check d-flex align-items-center gap-2 mb-0">
+                                <input class="form-check-input mt-0 cursor-pointer" type="checkbox" id="checkout-select-all" checked title="Select all items">
+                                <label class="form-check-label small fw-bold text-dark cursor-pointer" for="checkout-select-all">
+                                    Select All (<span id="checkout-sel-count">{{ cart.items.count }}</span>/<span id="checkout-total-rows-count">{{ cart.items.count }}</span>)
+                                </label>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" id="checkout-bulk-del-btn" class="btn btn-sm btn-danger d-inline-flex align-items-center gap-1 py-1 px-2.5 rounded-pill">
+                                    <span class="material-symbols-outlined fs-6">delete</span>
+                                    <span class="small fw-bold" id="checkout-bulk-del-text">Delete Selected ({{ cart.items.count }})</span>
+                                </button>
+                                <a href="{% url 'cart' %}" class="btn btn-sm btn-link text-primary p-0 text-decoration-none small d-flex align-items-center gap-1">
+                                    <span class="material-symbols-outlined fs-6">shopping_bag</span> Edit in Cart
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-white" id="checkout-items-list">
+                            {% for item in cart.items.all %}
+                            <div class="d-flex align-items-center justify-content-between py-2.5 checkout-item-row {% if not forloop.last %}border-bottom{% endif %}"
+                                id="checkout-item-row-{{ item.id }}"
+                                data-item-id="{{ item.id }}"
+                                data-item-name="{{ item.product.name|escapejs }}"
+                                data-price="{{ item.product.price|stringformat:'.2f' }}"
+                                data-mrp="{% if item.product.mrp %}{{ item.product.mrp|stringformat:'.2f' }}{% else %}{{ item.product.price|stringformat:'.2f' }}{% endif %}"
+                                data-quantity="{{ item.quantity }}"
+                                data-line-total="{{ item.line_total|stringformat:'.2f' }}"
+                                data-line-mrp="{{ item.mrp_total|stringformat:'.2f' }}">
+                                <div class="d-flex align-items-center gap-3">
+                                    <input type="checkbox" name="selected_items" value="{{ item.id }}" class="form-check-input checkout-item-cb mt-0 cursor-pointer" checked title="Select this item">
+                                    <img src="{{ item.product.display_image }}" alt="{{ item.product.name }}"
+                                        class="rounded border object-fit-contain p-1"
+                                        style="width: 50px; height: 50px; background: #f8fafc;">
+                                    <div>
+                                        <div class="fw-bold small text-dark lh-sm">{{ item.product.name }}</div>
+                                        <div class="small text-muted mt-0.5">Qty: {{ item.quantity }} • ₹{{ item.product.price|intcomma }} each</div>
+                                        <!-- Single Item Delete Action -->
+                                        <button type="button" class="btn btn-link text-danger p-0 text-decoration-none small d-inline-flex align-items-center gap-0.5 mt-1 checkout-single-del-btn"
+                                            data-item-id="{{ item.id }}" data-item-name="{{ item.product.name|escapejs }}" title="Remove this item">
+                                            <span class="material-symbols-outlined" style="font-size: 15px;">delete</span>
+                                            <span style="font-size: 0.72rem; font-weight: 600;">Delete</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="fw-bold font-heading text-dark">₹{{ item.line_total|intcomma }}</span>
+                                    {% if item.product.mrp and item.product.mrp > item.product.price %}
+                                    <div class="small text-muted"><del>₹{{ item.mrp_total|intcomma }}</del></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 4: FLIPKART STYLE PAYMENT OPTIONS ACCORDION -->
+                <div class="card border rounded-3 shadow-sm mb-4 overflow-hidden">
+                    <div class="p-3 d-flex justify-content-between align-items-center text-white"
+                        style="background: #1e463a;">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-white text-dark rounded-circle"
+                                style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">4</span>
+                            <span class="fw-bold small text-uppercase">PAYMENT OPTIONS</span>
+                        </div>
+                        <span class="badge bg-warning text-dark fw-bold small">100% SECURE & ENCRYPTED</span>
+                    </div>
+
+                    <div class="p-3 p-md-4 bg-white d-flex flex-column gap-3">
+
+                        <!-- OPTION 1: UPI (DIRECT GPAY, PHONEPE, PAYTM, BHIM) -->
+                        {% if payment_setting.enable_upi %}
+                        <div class="payment-option-card p-3 active-payment" id="card-upi" data-method="UPI">
+                            <div class="form-check d-flex align-items-start gap-2 mb-0">
+                                <input class="form-check-input mt-1 payment-radio" type="radio" name="payment_method"
+                                    id="pay_upi" value="UPI" checked>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+                                        <label for="pay_upi"
+                                            class="fw-bold text-dark cursor-pointer mb-0 d-flex align-items-center gap-2">
+                                            <span>UPI (Google Pay, PhonePe, Paytm, BHIM)</span>
+                                        </label>
+                                        <span class="badge bg-success-subtle text-success small fw-bold">DIRECT APP
+                                            CONNECT</span>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Instant payment with 2-step UPI verification
+                                        on your smartphone or QR code.</small>
+
+                                    <!-- Sub-details for UPI -->
+                                    <div class="payment-subpanel mt-3 pt-3 border-top" id="panel-upi">
+                                        <div class="small fw-semibold text-muted mb-2">CHOOSE YOUR UPI APP FOR DIRECT
+                                            PAYMENT:</div>
+
+                                        <!-- 4 Direct UPI App Tiles -->
+                                        <div class="row g-2 mb-3">
+                                            <!-- Google Pay -->
+                                            <div class="col-6 col-sm-3">
+                                                <div class="border rounded-3 p-2 text-center bg-white cursor-pointer upi-app-badge active"
+                                                    data-app="gpay" data-appname="Google Pay" data-vpa="{{ payment_setting.upi_id }}"
+                                                    data-intent="tez://upi/pay?pa={{ payment_setting.upi_id }}&pn={{ payment_setting.merchant_name|urlencode }}&am={{ cart.grand_total }}&cu=INR&tn={{ payment_setting.upi_note|urlencode }}">
+                                                    <div class="upi-app-icon mx-auto mb-1"
+                                                        style="background: #e8f0fe; color: #1a73e8;">
+                                                        <span class="fw-bold fs-5">G</span>
+                                                    </div>
+                                                    <span class="fw-bold text-dark small d-block">Google Pay</span>
+                                                    <span class="text-muted" style="font-size: 0.72rem;">GPay UPI</span>
+                                                </div>
+                                            </div>
+                                            <!-- PhonePe -->
+                                            <div class="col-6 col-sm-3">
+                                                <div class="border rounded-3 p-2 text-center bg-white cursor-pointer upi-app-badge"
+                                                    data-app="phonepe" data-appname="PhonePe" data-vpa="{{ payment_setting.upi_id }}"
+                                                    data-intent="phonepe://pay?pa={{ payment_setting.upi_id }}&pn={{ payment_setting.merchant_name|urlencode }}&am={{ cart.grand_total }}&cu=INR&tn={{ payment_setting.upi_note|urlencode }}">
+                                                    <div class="upi-app-icon mx-auto mb-1"
+                                                        style="background: #f3e8fd; color: #5f259f;">
+                                                        <span class="fw-bold fs-5">पे</span>
+                                                    </div>
+                                                    <span class="fw-bold text-dark small d-block">PhonePe</span>
+                                                    <span class="text-muted" style="font-size: 0.72rem;">Instant Pay</span>
+                                                </div>
+                                            </div>
+                                            <!-- Paytm UPI -->
+                                            <div class="col-6 col-sm-3">
+                                                <div class="border rounded-3 p-2 text-center bg-white cursor-pointer upi-app-badge"
+                                                    data-app="paytm" data-appname="Paytm UPI" data-vpa="{{ payment_setting.upi_id }}"
+                                                    data-intent="paytmmp://pay?pa={{ payment_setting.upi_id }}&pn={{ payment_setting.merchant_name|urlencode }}&am={{ cart.grand_total }}&cu=INR&tn={{ payment_setting.upi_note|urlencode }}">
+                                                    <div class="upi-app-icon mx-auto mb-1"
+                                                        style="background: #e0f7fa; color: #002970;">
+                                                        <span class="fw-bold" style="font-size: 0.75rem;">Paytm</span>
+                                                    </div>
+                                                    <span class="fw-bold text-dark small d-block">Paytm UPI</span>
+                                                    <span class="text-muted" style="font-size: 0.72rem;">Wallet / UPI</span>
+                                                </div>
+                                            </div>
+                                            <!-- BHIM / Any UPI -->
+                                            <div class="col-6 col-sm-3">
+                                                <div class="border rounded-3 p-2 text-center bg-white cursor-pointer upi-app-badge"
+                                                    data-app="bhim" data-appname="BHIM UPI" data-vpa="{{ payment_setting.upi_id }}"
+                                                    data-intent="upi://pay?pa={{ payment_setting.upi_id }}&pn={{ payment_setting.merchant_name|urlencode }}&am={{ cart.grand_total }}&cu=INR&tn={{ payment_setting.upi_note|urlencode }}">
+                                                    <div class="upi-app-icon mx-auto mb-1"
+                                                        style="background: #fff3e0; color: #e65100;">
+                                                        <span class="fw-bold" style="font-size: 0.75rem;">BHIM</span>
+                                                    </div>
+                                                    <span class="fw-bold text-dark small d-block">BHIM / Any</span>
+                                                    <span class="text-muted" style="font-size: 0.72rem;">All Apps</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Direct Action Box for Selected App -->
+                                        <div
+                                            class="p-3 rounded-3 mb-3 border bg-light d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                            <div>
+                                                <span class="small text-muted d-block">Selected Direct UPI
+                                                    Option:</span>
+                                                <strong class="text-dark d-flex align-items-center gap-1 fs-6"
+                                                    id="selected-upi-app-title">
+                                                    <span
+                                                        class="material-symbols-outlined text-success fs-5">bolt</span>
+                                                    <span>Pay via Google Pay</span>
+                                                </strong>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <!-- Open App Link Button -->
+                                                <button type="button"
+                                                    class="btn btn-sm btn-success fw-bold px-3 py-2 d-inline-flex align-items-center gap-1 shadow-sm"
+                                                    id="btn-launch-upi-app">
+                                                    <span class="material-symbols-outlined fs-6">open_in_new</span>
+                                                    <span id="btn-launch-upi-text">Pay ₹{{ cart.grand_total|intcomma }}
+                                                        with Google Pay</span>
+                                                </button>
+                                                <!-- Show QR Modal Button -->
+                                                <button type="button"
+                                                    class="btn btn-sm btn-outline-dark fw-semibold px-2 py-2 d-inline-flex align-items-center gap-1"
+                                                    id="btn-show-upi-qr">
+                                                    <span class="material-symbols-outlined fs-6">qr_code_2</span>
+                                                    <span>Show QR Code</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- UPI ID (VPA) Manual Input Option -->
+                                        <div class="small fw-semibold text-muted mb-2">OR ENTER UPI ID (VPA):</div>
+                                        <div class="input-group mb-2">
+                                            <span class="input-group-text bg-light text-muted small">@</span>
+                                            <input type="text" class="form-control form-control-sm" id="upi_id_input"
+                                                placeholder="Enter your UPI ID (e.g. {{ payment_setting.upi_id }})">
+                                            <button class="btn btn-outline-success btn-sm fw-semibold" type="button"
+                                                id="btn-verify-upi">Verify & Pay</button>
+                                        </div>
+                                        <div id="upi-feedback" class="small text-success d-none">
+                                            <span
+                                                class="material-symbols-outlined fs-6 align-middle">check_circle</span>
+                                            Verified UPI ID! Ready to authorize payment on your phone.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- OPTION 2: WALLETS -->
+                        <div class="payment-option-card p-3" id="card-wallet" data-method="WALLET">
+                            <div class="form-check d-flex align-items-start gap-2 mb-0">
+                                <input class="form-check-input mt-1 payment-radio" type="radio" name="payment_method"
+                                    id="pay_wallet" value="WALLET">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label for="pay_wallet" class="fw-bold text-dark cursor-pointer mb-0">Wallets
+                                            (Paytm / PhonePe / Amazon Pay)</label>
+                                        <span class="badge bg-light text-secondary border small">1-Click Checkout</span>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Use your pre-linked wallet balance with zero
+                                        transaction fees.</small>
+
+                                    <!-- Sub-details for Wallet -->
+                                    <div class="payment-subpanel mt-3 pt-3 border-top d-none" id="panel-wallet">
+                                        <div class="d-flex flex-column gap-2">
+                                            <label class="form-check d-flex align-items-center gap-2 cursor-pointer">
+                                                <input class="form-check-input" type="radio" name="wallet_provider"
+                                                    value="paytm" checked>
+                                                <span class="small fw-semibold">Paytm Wallet (Linked: +91 {{ user.phone|default:'7092862416' }})</span>
+                                            </label>
+                                            <label class="form-check d-flex align-items-center gap-2 cursor-pointer">
+                                                <input class="form-check-input" type="radio" name="wallet_provider"
+                                                    value="phonepe">
+                                                <span class="small fw-semibold">PhonePe Wallet</span>
+                                            </label>
+                                            <label class="form-check d-flex align-items-center gap-2 cursor-pointer">
+                                                <input class="form-check-input" type="radio" name="wallet_provider"
+                                                    value="amazonpay">
+                                                <span class="small fw-semibold">Amazon Pay Balance</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- OPTION 3: CREDIT / DEBIT / ATM CARD -->
+                        {% if payment_setting.enable_card %}
+                        <div class="payment-option-card p-3" id="card-card" data-method="CARD">
+                            <div class="form-check d-flex align-items-start gap-2 mb-0">
+                                <input class="form-check-input mt-1 payment-radio" type="radio" name="payment_method"
+                                    id="pay_card" value="CARD" {% if not payment_setting.enable_upi and payment_setting.enable_card %}checked{% endif %}>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label for="pay_card" class="fw-bold text-dark cursor-pointer mb-0">Credit /
+                                            Debit / ATM Card</label>
+                                        <span class="badge bg-primary-subtle text-primary small">Zero Surcharge</span>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Visa, MasterCard, RuPay, Maestro & American
+                                        Express. 3D Secure OTP Protection.</small>
+
+                                    <!-- Sub-details for Cards -->
+                                    <div class="payment-subpanel mt-3 pt-3 border-top d-none" id="panel-card">
+                                        <div class="row g-2">
+                                            <div class="col-12">
+                                                <label class="form-label small fw-semibold text-muted">Card
+                                                    Number</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-white text-muted">
+                                                        <span class="material-symbols-outlined fs-6">credit_card</span>
+                                                    </span>
+                                                    <input type="text" class="form-control" id="card_number_input"
+                                                        placeholder="XXXX XXXX XXXX XXXX" maxlength="19">
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small fw-semibold text-muted">Valid Thru (MM /
+                                                    YY)</label>
+                                                <input type="text" class="form-control" placeholder="MM / YY"
+                                                    maxlength="5">
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small fw-semibold text-muted">CVV</label>
+                                                <input type="password" class="form-control" placeholder="3 digits"
+                                                    maxlength="4">
+                                            </div>
+                                            <div class="col-12 mt-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="save_card"
+                                                        checked>
+                                                    <label class="form-check-label small text-muted" for="save_card">
+                                                        Save this card securely as per RBI guidelines
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- OPTION 4: NET BANKING -->
+                        {% if payment_setting.enable_netbanking %}
+                        <div class="payment-option-card p-3" id="card-netbanking" data-method="NETBANKING">
+                            <div class="form-check d-flex align-items-start gap-2 mb-0">
+                                <input class="form-check-input mt-1 payment-radio" type="radio" name="payment_method"
+                                    id="pay_netbanking" value="NETBANKING">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label for="pay_netbanking" class="fw-bold text-dark cursor-pointer mb-0">Net
+                                            Banking</label>
+                                        <span class="badge bg-light text-secondary border small">50+ Indian Banks</span>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Direct debit from HDFC, SBI, ICICI, Axis,
+                                        Kotak, and all major Indian banks.</small>
+
+                                    <!-- Sub-details for Net Banking -->
+                                    <div class="payment-subpanel mt-3 pt-3 border-top d-none" id="panel-netbanking">
+                                        <div class="small fw-semibold text-muted mb-2">POPULAR BANKS:</div>
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-4 col-sm-2">
+                                                <div class="bank-tile selected" data-bank="HDFC">
+                                                    <strong class="d-block small">HDFC</strong>
+                                                    <span style="font-size: 0.65rem;" class="text-muted">Bank</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-4 col-sm-2">
+                                                <div class="bank-tile" data-bank="SBI">
+                                                    <strong class="d-block small">SBI</strong>
+                                                    <span style="font-size: 0.65rem;" class="text-muted">State
+                                                        Bank</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-4 col-sm-2">
+                                                <div class="bank-tile" data-bank="ICICI">
+                                                    <strong class="d-block small">ICICI</strong>
+                                                    <span style="font-size: 0.65rem;" class="text-muted">Bank</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-4 col-sm-2">
+                                                <div class="bank-tile" data-bank="AXIS">
+                                                    <strong class="d-block small">AXIS</strong>
+                                                    <span style="font-size: 0.65rem;" class="text-muted">Bank</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-4 col-sm-2">
+                                                <div class="bank-tile" data-bank="KOTAK">
+                                                    <strong class="d-block small">KOTAK</strong>
+                                                    <span style="font-size: 0.65rem;" class="text-muted">Mahindra</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-4 col-sm-2">
+                                                <div class="bank-tile" data-bank="PNB">
+                                                    <strong class="d-block small">PNB</strong>
+                                                    <span style="font-size: 0.65rem;" class="text-muted">National</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <label class="form-label small fw-semibold text-muted">OR SELECT OTHER
+                                            BANK</label>
+                                        <select class="form-select form-select-sm" id="netbanking-other-select">
+                                            <option value="">-- Choose from 50+ Banks --</option>
+                                            <option value="BOB">Bank of Baroda</option>
+                                            <option value="CANARA">Canara Bank</option>
+                                            <option value="UNION">Union Bank of India</option>
+                                            <option value="INDUSIND">IndusInd Bank</option>
+                                            <option value="YES">Yes Bank</option>
+                                            <option value="FEDERAL">Federal Bank</option>
+                                            <option value="IDBI">IDBI Bank</option>
+                                            <option value="IOB">Indian Overseas Bank</option>
+                                            <option value="CENTRAL">Central Bank of India</option>
+                                        </select>
+
+                                        <!-- Bank Account Selection & Account Details Section -->
+                                        <div class="mt-4 pt-3 border-top">
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <div class="small fw-bold text-dark d-flex align-items-center gap-1">
+                                                    <span class="material-symbols-outlined fs-6 text-success">account_balance_wallet</span>
+                                                    <span>SELECT BANK ACCOUNT OPTION:</span>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-success py-0 px-2 fw-semibold" id="btn-autofill-bank-account" style="font-size: 0.75rem;">
+                                                    ⚡ Auto-Fill Sample Account
+                                                </button>
+                                            </div>
+
+                                            <!-- Account Selection Cards -->
+                                            <div class="row g-2 mb-3">
+                                                <div class="col-12 col-md-6">
+                                                    <div class="border rounded-3 p-2 bg-light nb-account-card active-account-card" id="card-account-saved" style="border-color: #1e463a !important; background-color: #f0fdf4 !important;">
+                                                        <div class="form-check mb-0">
+                                                            <input class="form-check-input" type="radio" name="bank_account_mode" id="mode_saved_account" value="saved" checked>
+                                                            <label class="form-check-label w-100 cursor-pointer" for="mode_saved_account">
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <strong class="small text-dark" id="nb-account-bank-label">HDFC Bank</strong>
+                                                                    <span class="badge bg-success small" style="font-size: 0.65rem;">Linked ✓</span>
+                                                                </div>
+                                                                <div class="font-monospace small text-muted">A/C: •••• •••• 4821</div>
+                                                                <small class="text-muted" style="font-size: 0.7rem;">Primary Savings Account</small>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-md-6">
+                                                    <div class="border rounded-3 p-2 bg-light nb-account-card" id="card-account-new">
+                                                        <div class="form-check mb-0">
+                                                            <input class="form-check-input" type="radio" name="bank_account_mode" id="mode_new_account" value="new">
+                                                            <label class="form-check-label w-100 cursor-pointer" for="mode_new_account">
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <strong class="small text-dark">Enter New Account Details</strong>
+                                                                    <span class="badge bg-secondary-subtle text-secondary small" style="font-size: 0.65rem;">Manual Fill</span>
+                                                                </div>
+                                                                <div class="small text-muted" style="font-size: 0.75rem;">Fill account details below</div>
+                                                                <small class="text-muted" style="font-size: 0.7rem;">Direct debit via IFSC</small>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Fillable Bank Account Form Fields -->
+                                            <div class="p-3 rounded-3 bg-light border mb-3" id="nb-fillable-details">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <span class="small fw-bold text-dark text-uppercase">Bank Account Details (Fillable)</span>
+                                                    <span class="small text-muted" style="font-size: 0.72rem;">Verified with NPCI / RBI NetBanking</span>
+                                                </div>
+
+                                                <div class="row g-2">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label small fw-semibold text-muted mb-1">Account Holder Name</label>
+                                                        <input type="text" class="form-control form-control-sm" name="bank_account_holder" id="bank_account_holder" value="{{ user.get_full_name|default:user.username }}" placeholder="Name as per bank passbook">
+                                                    </div>
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label small fw-semibold text-muted mb-1">Account Type</label>
+                                                        <select class="form-select form-select-sm" name="bank_account_type" id="bank_account_type">
+                                                            <option value="Savings Account" selected>Savings Account</option>
+                                                            <option value="Current Account">Current Account</option>
+                                                            <option value="Salary Account">Salary Account</option>
+                                                            <option value="NRI / NRO Account">NRI / NRO Account</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label small fw-semibold text-muted mb-1">Bank Account Number</label>
+                                                        <input type="text" class="form-control form-control-sm font-monospace" name="bank_account_number" id="bank_account_number" value="50100482193847" placeholder="e.g. 50100482193847" maxlength="18" inputmode="numeric">
+                                                    </div>
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label small fw-semibold text-muted mb-1">Confirm Account Number</label>
+                                                        <input type="password" class="form-control form-control-sm font-monospace" id="confirm_bank_account_number" value="50100482193847" placeholder="Re-enter Account Number" maxlength="18" inputmode="numeric">
+                                                        <div id="nb-acct-match-status" class="small mt-1" style="font-size: 0.72rem;"></div>
+                                                    </div>
+
+                                                    <div class="col-md-4">
+                                                        <label class="form-label small fw-semibold text-muted mb-1">Bank IFSC Code</label>
+                                                        <input type="text" class="form-control form-control-sm text-uppercase font-monospace" name="bank_ifsc" id="bank_ifsc" value="HDFC0000123" maxlength="11">
+                                                    </div>
+
+                                                    <div class="col-md-4">
+                                                        <label class="form-label small fw-semibold text-muted mb-1">Customer ID / Net Banking ID</label>
+                                                        <input type="text" class="form-control form-control-sm" name="bank_customer_id" id="bank_customer_id" value="CUST_{{ request.user.id }}_{{ user.phone|default:'4821'|slice:'-4:' }}" placeholder="Customer ID">
+                                                    </div>
+
+                                                    <div class="col-md-4">
+                                                        <label class="form-label small fw-semibold text-muted mb-1">Branch Location</label>
+                                                        <input type="text" class="form-control form-control-sm" name="bank_branch" id="bank_branch" value="Coimbatore Main Branch" placeholder="e.g. Coimbatore Main">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Security Notice -->
+                                            <div class="p-3 rounded-3 mb-3" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <span class="material-symbols-outlined text-success fs-5">shield</span>
+                                                    <strong class="text-dark small">Official Bank Gateway Redirection</strong>
+                                                </div>
+                                                <p class="small text-muted mb-0" style="font-size: 0.8rem; line-height: 1.4;">
+                                                    You will be transferred securely to the official <strong id="netbanking-target-name">HDFC Bank</strong> 256-bit Net Banking portal to authorize payment of <strong class="text-success">₹{{ cart.grand_total|intcomma }}</strong> via your registered bank mobile OTP.
+                                                </p>
+                                            </div>
+
+                                            <!-- Direct Net Banking Pay Action Button -->
+                                            <button type="submit" id="btn-pay-netbanking-direct"
+                                                class="btn w-100 py-3 fw-bold rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2 text-white"
+                                                style="background-color: #1e463a; font-size: 1.05rem;">
+                                                <span class="material-symbols-outlined fs-5">account_balance</span>
+                                                <span id="btn-pay-netbanking-text">Pay ₹{{ cart.grand_total|intcomma }} via HDFC Net Banking</span>
+                                            </button>
+
+                                            <div class="text-center mt-2 small text-muted" style="font-size: 0.72rem;">
+                                                <span class="material-symbols-outlined fs-6 align-middle text-success">lock</span>
+                                                256-Bit Bank Level Encryption • Official NPCI & RBI Net Banking Portal
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- OPTION 5: EMI (EASY INSTALLMENTS) -->
+                        <div class="payment-option-card p-3" id="card-emi" data-method="EMI">
+                            <div class="form-check d-flex align-items-start gap-2 mb-0">
+                                <input class="form-check-input mt-1 payment-radio" type="radio" name="payment_method"
+                                    id="pay_emi" value="EMI">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label for="pay_emi" class="fw-bold text-dark cursor-pointer mb-0">EMI (Easy
+                                            Installments & No Cost EMI)</label>
+                                        <span class="badge bg-warning-subtle text-warning-emphasis small fw-bold">NO
+                                            COST EMI AVAILABLE</span>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Starting from ₹{{ cart.grand_total|floatformat:0 }} / 12 = ₹{% widthratio cart.grand_total 12 1 %}/mo on HDFC, ICICI, SBI cards.</small>
+
+                                    <!-- Sub-details for EMI -->
+                                    <div class="payment-subpanel mt-3 pt-3 border-top d-none" id="panel-emi">
+                                        <div class="small fw-semibold text-muted mb-2">SELECT EMI TENURE:</div>
+                                        <div class="row g-2">
+                                            <div class="col-md-4">
+                                                <div class="border rounded p-2 text-center bg-light">
+                                                    <span class="badge bg-success small mb-1">NO COST</span>
+                                                    <div class="fw-bold small">3 Months</div>
+                                                    <div class="small text-muted">₹{% widthratio cart.grand_total 3 1 %}/mo</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="border rounded p-2 text-center bg-light">
+                                                    <span class="badge bg-success small mb-1">NO COST</span>
+                                                    <div class="fw-bold small">6 Months</div>
+                                                    <div class="small text-muted">₹{% widthratio cart.grand_total 6 1 %}/mo</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="border rounded p-2 text-center bg-light">
+                                                    <span
+                                                        class="badge bg-secondary-subtle text-secondary small mb-1">STANDARD</span>
+                                                    <div class="fw-bold small">12 Months</div>
+                                                    <div class="small text-muted">₹{% widthratio cart.grand_total 12 1 %}/mo</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- OPTION 6: CASH ON DELIVERY (COD) WITH OTP VERIFICATION -->
+                        {% if payment_setting.enable_cod %}
+                            {% if cart.grand_total > payment_setting.cod_max_limit %}
+                            <div class="payment-option-card p-3 rounded-3 bg-light border-dashed">
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                    <div class="d-flex align-items-center gap-2 text-muted">
+                                        <span class="material-symbols-outlined fs-5">block</span>
+                                        <span class="fw-bold">Cash on Delivery (COD)</span>
+                                    </div>
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle small fw-bold">Order Above Limit (Max ₹{{ payment_setting.cod_max_limit|intcomma }})</span>
+                                </div>
+                                <small class="text-muted d-block mt-2">Cash on Delivery is limited to orders up to ₹{{ payment_setting.cod_max_limit|intcomma }}. Please select an online payment option above.</small>
+                            </div>
+                            {% else %}
+                            <div class="payment-option-card p-3" id="card-cod" data-method="COD">
+                                <div class="form-check d-flex align-items-start gap-2 mb-0">
+                                    <input class="form-check-input mt-1 payment-radio" type="radio" name="payment_method"
+                                        id="pay_cod" value="COD" {% if selected_payment_method == 'COD' or not payment_setting.enable_upi and not payment_setting.enable_card and not payment_setting.enable_netbanking %}checked{% endif %}>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+                                            <label for="pay_cod"
+                                                class="fw-bold text-dark cursor-pointer mb-0 d-flex align-items-center gap-2">
+                                                <span
+                                                    class="material-symbols-outlined text-warning-emphasis fs-5">pin</span>
+                                                <span>Cash on Delivery (COD)</span>
+                                            </label>
+                                            <span class="badge bg-warning text-dark fw-bold small">MANDATORY OTP
+                                                VERIFIED</span>
+                                        </div>
+                                        <small class="text-muted d-block mt-1">Pay with cash or UPI QR upon delivery at your
+                                            doorstep.</small>
+
+                                        <!-- Sub-details for COD with OTP verification -->
+                                        <div class="payment-subpanel mt-3 pt-3 border-top {% if selected_payment_method != 'COD' %}d-none{% endif %}"
+                                            id="panel-cod">
+                                            <div class="cod-verification-box">
+                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                    <span
+                                                        class="material-symbols-outlined text-warning-emphasis fs-5">security</span>
+                                                    <strong class="text-dark small">Flipkart-Standard Fraud
+                                                        Protection</strong>
+                                                </div>
+                                                <p class="small text-muted mb-3" style="line-height: 1.4;">
+                                                    Due to high handling costs, Cash on Delivery requires a quick 6-digit
+                                                    OTP verification code sent to your delivery mobile number to confirm
+                                                    this order.
+                                                </p>
+
+                                                <div
+                                                    class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 bg-white p-2 rounded border">
+                                                    <div class="small">
+                                                        <span class="text-muted">Target Phone: </span>
+                                                        <strong class="text-dark" id="cod_phone_display">+91 {{ user.phone|default:'7092862416' }}</strong>
+                                                    </div>
+                                                    <button type="button"
+                                                        class="btn btn-sm btn-dark fw-semibold d-inline-flex align-items-center gap-1"
+                                                        id="btn-send-cod-otp">
+                                                        <span class="material-symbols-outlined fs-6">sms</span>
+                                                        <span id="cod-otp-btn-text">Send Verification OTP</span>
+                                                    </button>
+                                                </div>
+
+                                                <!-- Live Demo OTP Pill / Auto-fill Helper for User Convenience -->
+                                                <div id="cod-demo-container" class="d-none mb-3">
+                                                    <div class="d-flex align-items-center justify-content-between p-2 rounded"
+                                                        style="background: #eef2ff; border: 1px dashed #6366f1;">
+                                                        <div class="small text-indigo-900">
+                                                            <span class="badge bg-primary me-1">Demo OTP Code</span>
+                                                            <strong id="cod-demo-otp-code" class="fs-6 font-monospace"
+                                                                style="letter-spacing: 2px;">123456</strong>
+                                                        </div>
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-primary py-0 px-2 fw-semibold"
+                                                            id="btn-auto-fill-cod-otp">
+                                                            Auto-fill OTP
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <!-- OTP Input Row -->
+                                                <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                                                    <input type="text" id="cod_otp_input"
+                                                        class="form-control otp-input-large" placeholder="______"
+                                                        maxlength="6" inputmode="numeric">
+                                                    <button type="button" class="btn btn-success fw-bold px-3 py-2"
+                                                        id="btn-verify-cod-otp">
+                                                        Verify Code
+                                                    </button>
+                                                </div>
+
+                                                <div id="cod-verification-status" class="small">
+                                                    {% if cod_error %}
+                                                    <span class="text-danger fw-bold d-flex align-items-center gap-1">
+                                                        <span class="material-symbols-outlined fs-6">error</span> {{ cod_error }}
+                                                    </span>
+                                                    {% else %}
+                                                    <span class="text-muted">Enter the 6-digit OTP code received on your
+                                                        mobile.</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Flipkart-Style Price Details & Place Order -->
+            <div class="col-lg-4">
+                <div class="price-details-card p-4 sticky-top" style="top: 85px; z-index: 5 !important;">
+                    <div class="price-details-header mb-3">PRICE DETAILS</div>
+
+                    <!-- Price breakdown -->
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted" id="price-details-items-label">Price ({{ cart.total_items }} item{{ cart.total_items|pluralize }})</span>
+                        <span class="fw-semibold" id="price-details-mrp">₹{{ cart.total_mrp|default:cart.subtotal|intcomma }}</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2" id="price-details-discount-row" {% if not cart.total_discount or cart.total_discount <= 0 %}style="display: none !important;"{% endif %}>
+                        <span class="text-muted">Discount</span>
+                        <span class="text-success fw-bold" id="price-details-discount">− ₹{{ cart.total_discount|intcomma }}</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Delivery Charges</span>
+                        <span class="d-flex align-items-center gap-1" id="price-details-delivery">
+                            {% if cart.delivery_charge == 0 %}
+                            <del class="text-muted small">₹40</del>
+                            <span class="text-success fw-bold">FREE</span>
+                            {% else %}
+                            <span class="fw-bold">₹{{ cart.delivery_charge }}</span>
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Packaging / Securing Fee</span>
+                        <span class="d-flex align-items-center gap-1">
+                            <del class="text-muted small">₹29</del>
+                            <span class="text-success fw-bold">FREE</span>
+                        </span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-3 text-muted small">
+                        <span>GST (18% included)</span>
+                        <span id="price-details-gst">₹{{ cart.gst_amount|intcomma }}</span>
+                    </div>
+
+                    <hr class="my-3 border-secondary-subtle">
+
+                    <!-- Total Amount Payable -->
+                    <div class="d-flex justify-content-between align-items-baseline mb-3">
+                        <div>
+                            <strong class="fs-5 text-dark">Total Amount</strong>
+                            <div class="small text-muted" style="font-size: 0.72rem;">Inclusive of all Indian taxes</div>
+                        </div>
+                        <span class="display-6 fw-bold font-heading" id="price-details-grand-total" style="color: #1e463a;">₹{{ cart.grand_total|intcomma }}</span>
+                    </div>
+
+                    <!-- Green Flipkart Savings Callout -->
+                    <div class="savings-badge-box mb-4 d-flex align-items-center gap-2" id="price-details-savings-box" {% if not cart.total_discount or cart.total_discount <= 0 %}style="display: none !important;"{% endif %}>
+                        <span class="material-symbols-outlined fs-5 text-success">savings</span>
+                        <span>You will save <strong id="price-details-savings">₹{{ cart.total_discount|default:"0"|intcomma }}</strong> on this order!</span>
+                    </div>
+
+                    <!-- Primary Place Order & Pay Button -->
+                    <button type="submit" id="btn-place-order"
+                        class="btn btn-tm-primary w-100 py-3 fw-bold rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2 text-white"
+                        style="background-color: #1e463a; border: none; font-size: 1.05rem;">
+                        <span class="material-symbols-outlined fs-5">bolt</span>
+                        <span id="btn-place-order-text">Place Order & Pay via UPI (₹{{ cart.grand_total|intcomma }})</span>
+                    </button>
+
+                    <!-- Trust Assurance Strip -->
+                    <div class="mt-4 pt-3 border-top text-center text-muted small">
+                        <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                            <span class="material-symbols-outlined text-success fs-5">verified</span>
+                            <span class="fw-semibold text-dark">100% Authentic Tech Guarantee</span>
+                        </div>
+                        <div style="font-size: 0.75rem;">Doorstep PIN Verification • Easy 7-Day Replacement</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Standalone Dedicated Form for Order Summary Deletion (OUTSIDE checkout-form to avoid HTML form nesting) -->
+<form id="checkout-standalone-delete-form" method="post" action="{% url 'bulk_remove_from_cart' %}" class="d-none">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="checkout">
+    <div id="standalone-delete-items-container"></div>
+</form>
+
+<!-- ============================================================================== -->
+<!-- UPI EXPRESS PAYMENT GATEWAY MODAL (Google Pay, PhonePe, Paytm, BHIM & QR) -->
+<!-- ============================================================================== -->
+<div class="modal fade" id="upiPaymentModal" tabindex="-1" aria-labelledby="upiPaymentModalLabel" aria-hidden="true"
+    data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header text-white" style="background: #1e463a;">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-symbols-outlined fs-5">bolt</span>
+                    <h5 class="modal-title fw-bold" id="upiPaymentModalLabel">UPI Express Gateway</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <!-- App Header Banner -->
+                <div class="d-flex align-items-center justify-content-center gap-2 mb-3">
+                    <div class="upi-app-icon" id="modal-app-icon"
+                        style="background: #e8f0fe; color: #1a73e8; width: 36px; height: 36px;">
+                        <span class="fw-bold" id="modal-app-icon-letter">G</span>
+                    </div>
+                    <div class="text-start">
+                        <strong class="d-block text-dark fs-5" id="modal-app-name">Google Pay</strong>
+                        <span class="text-muted small">NPCI Unified Payments Interface</span>
+                    </div>
+                </div>
+
+                <div class="bg-light p-3 rounded-3 mb-3 border">
+                    <span class="text-muted small text-uppercase fw-semibold d-block">Payable Amount</span>
+                    <span class="display-6 fw-bold font-heading" id="modal-payable-amount" style="color: #1e463a;">₹{{ cart.grand_total|intcomma }}</span>
+                    <div class="small text-muted mt-1">Merchant: <strong>{{ payment_setting.merchant_name|default:'Tech Mart Technologies' }}</strong>
+                        (<span class="fw-bold text-dark">{{ payment_setting.upi_id }}</span>)</div>
+                </div>
+
+                <!-- Google Pay Scannable UPI QR Code -->
+                <div class="upi-qr-card mb-3 mx-auto" style="max-width: 280px;">
+                    <div
+                        class="small fw-semibold text-muted mb-2 d-flex align-items-center justify-content-center gap-1">
+                        <span class="material-symbols-outlined fs-6 text-success">qr_code_scanner</span>
+                        <span>Scan with GPay or any UPI App</span>
+                    </div>
+                    <div class="position-relative d-inline-block p-2 bg-white rounded-3 border shadow-sm">
+                        <img id="upi-qr-image"
+                            src="{{ payment_setting.get_qr_url }}"
+                            alt="UPI QR Code - {{ payment_setting.upi_id }}" class="img-fluid rounded-2" style="width: 220px; height: auto; max-height: 250px; object-fit: contain;">
+                    </div>
+                    <div class="mt-2 text-center">
+                        <span class="badge bg-light text-dark border px-2.5 py-1.5 small fw-bold">
+                            <span class="material-symbols-outlined fs-6 align-middle text-success">verified</span>
+                            UPI ID: {{ payment_setting.upi_id }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Direct App Launch Button for Mobile / Laptop Handlers -->
+                <div class="mb-2">
+                    <a href="intent://pay?pa={{ payment_setting.upi_id }}&pn={{ payment_setting.merchant_name|urlencode }}&am={{ cart.grand_total }}&cu=INR&tn={{ payment_setting.upi_note|urlencode }}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end"
+                        id="btn-modal-open-app"
+                        class="btn btn-success w-100 py-2.5 fw-bold rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2"
+                        style="background-color: #0d8a4e; border-color: #0d8a4e; font-size: 1rem;">
+                        <span class="material-symbols-outlined fs-5">open_in_new</span>
+                        <span id="btn-modal-open-app-text">Open Google Pay App</span>
+                    </a>
+                </div>
+                <div class="text-center mb-3">
+                    <a href="upi://pay?pa={{ payment_setting.upi_id }}&pn={{ payment_setting.merchant_name|urlencode }}&am={{ cart.grand_total }}&cu=INR&tn={{ payment_setting.upi_note|urlencode }}"
+                        id="direct-upi-deeplink"
+                        class="small text-muted text-decoration-none d-inline-flex align-items-center gap-1">
+                        <span class="material-symbols-outlined fs-6 text-primary">link</span>
+                        <span>Direct UPI Link: <span class="text-primary text-decoration-underline" id="direct-upi-vpa-text">upi://pay?pa={{ payment_setting.upi_id }}</span></span>
+                    </a>
+                </div>
+
+                <!-- Timer & Simulated Instant Confirmation -->
+                <div class="d-flex align-items-center justify-content-between p-2 rounded bg-light border mb-3 small">
+                    <span class="text-muted d-flex align-items-center gap-1">
+                        <span class="material-symbols-outlined fs-6 text-warning-emphasis">timer</span>
+                        <span>Session expires in:</span>
+                    </span>
+                    <strong class="text-danger font-monospace fs-6" id="upi-timer">04:59</strong>
+                </div>
+
+                <div class="d-grid">
+                    <button type="button"
+                        class="btn btn-dark py-2 fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2"
+                        id="btn-simulate-upi-success">
+                        <span class="material-symbols-outlined fs-5 text-success">check_circle</span>
+                        <span>I Have Completed Payment / Simulate Success</span>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer bg-light p-2 justify-content-center border-top">
+                <span class="small text-muted d-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                    <span class="material-symbols-outlined fs-6 text-success">verified_user</span> 256-bit Bank Grade
+                    Encryption • 100% Secure Transfer
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Address Modals (Retained for seamless in-place editing) -->
+{% if addresses %}
+{% for addr in addresses %}
+<div class="modal fade" id="editModal{{ addr.id }}" tabindex="-1" aria-labelledby="editModalLabel{{ addr.id }}"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom text-white" style="background: #1e463a;">
+                <h5 class="modal-title fw-bold" id="editModalLabel{{ addr.id }}">
+                    <span class="material-symbols-outlined fs-5 align-middle">edit</span> Edit Delivery Address
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'address_edit' pk=addr.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'checkout' %}">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Full Name *</label>
+                            <input type="text" name="full_name" class="form-control" value="{{ addr.full_name }}"
+                                required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Phone *</label>
+                            <input type="text" name="phone" class="form-control" value="{{ addr.phone }}" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Address Line 1 (Flat, House no., Building)
+                                *</label>
+                            <input type="text" name="address_line1" class="form-control"
+                                value="{{ addr.address_line1 }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Address Line 2 (Area, Street)</label>
+                            <input type="text" name="address_line2" class="form-control"
+                                value="{{ addr.address_line2|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Landmark</label>
+                            <input type="text" name="landmark" class="form-control"
+                                value="{{ addr.landmark|default:'' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">City *</label>
+                            <input type="text" name="city" class="form-control" value="{{ addr.city }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">State *</label>
+                            <input type="text" name="state" class="form-control" value="{{ addr.state }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Pincode *</label>
+                            <input type="text" name="pincode" class="form-control" value="{{ addr.pincode }}"
+                                maxlength="6" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Type</label>
+                            <select name="address_type" class="form-select">
+                                <option value="HOME" {% if addr.address_type == 'HOME' %}selected{% endif %}>Home</option>
+                                <option value="OFFICE" {% if addr.address_type == 'OFFICE' %}selected{% endif %}>Office</option>
+                                <option value="OTHER" {% if addr.address_type == 'OTHER' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-center mt-4">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_default" class="form-check-input"
+                                    id="modal_def_{{ addr.id }}" {% if addr.is_default %}checked{% endif %}>
+                                <label class="form-check-label small" for="modal_def_{{ addr.id }}">Set as
+                                    default</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold"
+                        style="background: #1e463a; border-color: #1e463a;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Address Modal -->
+<div class="modal fade" id="deleteAddressModal{{ addr.id }}" tabindex="-1"
+    aria-labelledby="deleteModalLabel{{ addr.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom bg-danger text-white">
+                <h5 class="modal-title fw-bold" id="deleteModalLabel{{ addr.id }}">
+                    <span class="material-symbols-outlined fs-5 align-middle">delete</span> Delete Delivery Address
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-2">Are you sure you want to remove this delivery address?</p>
+                <div class="p-3 bg-light rounded-3 border">
+                    <strong class="d-block text-dark">{{ addr.full_name }} ({{ addr.get_address_type_display }})</strong>
+                    <small class="text-muted d-block">{{ addr.address_line1 }}{% if addr.address_line2 %}, {{ addr.address_line2 }}{% endif %}</small>
+                    <small class="text-muted d-block">{{ addr.city }}, {{ addr.state }} - <strong>{{ addr.pincode }}</strong></small>
+                    <small class="text-muted d-block mt-1"><span
+                            class="material-symbols-outlined fs-6 align-middle">call</span> {{ addr.phone }}</small>
+                </div>
+            </div>
+            <div class="modal-footer border-top bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <form action="{% url 'address_delete' pk=addr.id %}" method="post" class="d-inline m-0">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'checkout' %}">
+                    <button type="submit" class="btn btn-danger btn-sm px-4 fw-bold">Confirm Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- 1. Address Toggling Logic ---
+        const addrRadios = document.querySelectorAll('.address-radio');
+        const newAddrSection = document.getElementById('new-address-section');
+        const newAddrInputs = document.querySelectorAll('.new-addr-input');
+        const checkoutForm = document.getElementById('checkout-form');
+        const codPhoneDisplay = document.getElementById('cod_phone_display');
+
+        function updateSelectedPhone() {
+            const selectedRadio = document.querySelector('.address-radio:checked');
+            if (selectedRadio) {
+                if (selectedRadio.value === 'new') {
+                    const newPhone = document.getElementById('new_address_phone').value;
+                    if (newPhone && codPhoneDisplay) codPhoneDisplay.innerText = '+91 ' + newPhone;
+                } else {
+                    const phone = selectedRadio.dataset.phone;
+                    if (phone && codPhoneDisplay) codPhoneDisplay.innerText = '+91 ' + phone;
+                }
+            }
+        }
+
+        function toggleNewAddressFields() {
+            const selectedRadio = document.querySelector('.address-radio:checked');
+            const isNew = selectedRadio && selectedRadio.value === 'new';
+
+            if (isNew || !selectedRadio) {
+                if (newAddrSection) newAddrSection.classList.remove('d-none');
+                newAddrInputs.forEach(input => input.disabled = false);
+            } else {
+                if (newAddrSection) newAddrSection.classList.add('d-none');
+                newAddrInputs.forEach(input => input.disabled = true);
+            }
+            updateSelectedPhone();
+        }
+
+        addrRadios.forEach(radio => {
+            radio.addEventListener('change', toggleNewAddressFields);
+        });
+        toggleNewAddressFields();
+
+        // --- 2. Flipkart Style Payment Accordion Switching ---
+        const paymentRadios = document.querySelectorAll('.payment-radio');
+        const paymentCards = {
+            'UPI': document.getElementById('card-upi'),
+            'WALLET': document.getElementById('card-wallet'),
+            'CARD': document.getElementById('card-card'),
+            'NETBANKING': document.getElementById('card-netbanking'),
+            'EMI': document.getElementById('card-emi'),
+            'COD': document.getElementById('card-cod'),
+        };
+        const paymentPanels = {
+            'UPI': document.getElementById('panel-upi'),
+            'WALLET': document.getElementById('panel-wallet'),
+            'CARD': document.getElementById('panel-card'),
+            'NETBANKING': document.getElementById('panel-netbanking'),
+            'EMI': document.getElementById('panel-emi'),
+            'COD': document.getElementById('panel-cod'),
+        };
+
+        function switchPaymentMethod(method) {
+            // 1. Check the radio button
+            const targetRadio = document.querySelector(`input[name="payment_method"][value="${method}"]`);
+            if (targetRadio) {
+                targetRadio.checked = true;
+            }
+
+            // 2. Highlight card and show/hide sub-panels
+            Object.keys(paymentCards).forEach(key => {
+                if (paymentCards[key]) {
+                    if (key === method) {
+                        paymentCards[key].classList.add('active-payment');
+                        if (paymentPanels[key]) paymentPanels[key].classList.remove('d-none');
+                    } else {
+                        paymentCards[key].classList.remove('active-payment');
+                        if (paymentPanels[key]) paymentPanels[key].classList.add('d-none');
+                    }
+                }
+            });
+
+            // 3. Dynamic Button Update based on payment method
+            const btnPlaceOrder = document.getElementById('btn-place-order');
+            if (btnPlaceOrder) {
+                if (method === 'COD') {
+                    btnPlaceOrder.innerHTML = `
+                        <span class="material-symbols-outlined fs-5">local_shipping</span>
+                        <span>Confirm Cash on Delivery Order</span>
+                    `;
+                    // Automatically trigger OTP generation if not yet sent
+                    if (!codOtpGenerated) {
+                        triggerSendCodOtp();
+                    }
+                } else if (method === 'UPI') {
+                    btnPlaceOrder.innerHTML = `
+                        <span class="material-symbols-outlined fs-5">bolt</span>
+                        <span>Place Order & Pay via UPI</span>
+                    `;
+                } else if (method === 'CARD') {
+                    btnPlaceOrder.innerHTML = `
+                        <span class="material-symbols-outlined fs-5">credit_card</span>
+                        <span>Pay ₹{{ cart.grand_total|intcomma }} with Card</span>
+                    `;
+                } else if (method === 'NETBANKING') {
+                    const currentBank = (selectedBankInput && selectedBankInput.value) ? selectedBankInput.value : 'Net Banking';
+                    btnPlaceOrder.innerHTML = `
+                        <span class="material-symbols-outlined fs-5">account_balance</span>
+                        <span>Pay ₹{{ cart.grand_total|intcomma }} via ${currentBank}</span>
+                    `;
+                } else if (method === 'WALLET') {
+                    btnPlaceOrder.innerHTML = `
+                        <span class="material-symbols-outlined fs-5">account_balance_wallet</span>
+                        <span>Pay ₹{{ cart.grand_total|intcomma }} with Wallet</span>
+                    `;
+                } else if (method === 'EMI') {
+                    btnPlaceOrder.innerHTML = `
+                        <span class="material-symbols-outlined fs-5">payments</span>
+                        <span>Proceed with EMI</span>
+                    `;
+                }
+            }
+        }
+
+        // Click listener on entire payment card containers
+        document.querySelectorAll('.payment-option-card').forEach(card => {
+            card.addEventListener('click', function (e) {
+                // If clicking inside subpanel inputs, buttons, selects, or links, do not switch
+                if (e.target.closest('.payment-subpanel') && !e.target.classList.contains('payment-radio')) {
+                    return;
+                }
+                const method = this.dataset.method;
+                if (method) {
+                    switchPaymentMethod(method);
+                }
+            });
+        });
+
+        paymentRadios.forEach(radio => {
+            radio.addEventListener('change', function () {
+                switchPaymentMethod(this.value);
+            });
+        });
+
+        // Initial payment method setup
+        const checkedPaymentRadio = document.querySelector('.payment-radio:checked');
+        if (checkedPaymentRadio) {
+            switchPaymentMethod(checkedPaymentRadio.value);
+        } else {
+            const firstAvailableRadio = document.querySelector('.payment-radio');
+            if (firstAvailableRadio) {
+                switchPaymentMethod(firstAvailableRadio.value);
+            }
+        }
+
+        // Bank Tile & Account Selection Logic
+        const selectedBankInput = document.getElementById('selected_bank_name');
+        const bankTiles = document.querySelectorAll('.bank-tile');
+        const bankIfscInput = document.getElementById('bank_ifsc');
+        const targetBankNameEl = document.getElementById('netbanking-target-name');
+        const accountBankLabel = document.getElementById('nb-account-bank-label');
+        const btnPayNbText = document.getElementById('btn-pay-netbanking-text');
+        const btnPayNbDirect = document.getElementById('btn-pay-netbanking-direct');
+
+        const bankIfscMap = {
+            'HDFC': 'HDFC0000123',
+            'SBI': 'SBIN0001234',
+            'ICICI': 'ICIC0000001',
+            'AXIS': 'UTIB0000001',
+            'KOTAK': 'KKBK0000001',
+            'PNB': 'PUNB0000001',
+            'BOB': 'BARB0COIMBA',
+            'CANARA': 'CNRB0001234',
+            'UNION': 'UBIN0530001',
+            'INDUSIND': 'INDB0000001',
+            'YES': 'YESB0000001',
+            'FEDERAL': 'FDRL0001234',
+            'IDBI': 'IBKL0000001',
+            'IOB': 'IOBA0001234',
+            'CENTRAL': 'CBIN0280001'
+        };
+
+        function updateSelectedBank(bankKey, bankFullName) {
+            if (selectedBankInput) selectedBankInput.value = bankFullName;
+            if (targetBankNameEl) targetBankNameEl.textContent = bankFullName;
+            if (accountBankLabel) accountBankLabel.textContent = bankFullName;
+            if (btnPayNbText) {
+                btnPayNbText.textContent = `Pay ₹{{ cart.grand_total|intcomma }} via ${bankFullName} Net Banking`;
+            }
+            const btnPlaceOrder = document.getElementById('btn-place-order');
+            if (btnPlaceOrder && document.getElementById('pay_netbanking')?.checked) {
+                btnPlaceOrder.innerHTML = `
+                    <span class="material-symbols-outlined fs-5">account_balance</span>
+                    <span>Pay ₹{{ cart.grand_total|intcomma }} via ${bankFullName} Net Banking</span>
+                `;
+            }
+            if (bankIfscInput && bankIfscMap[bankKey]) {
+                bankIfscInput.value = bankIfscMap[bankKey];
+            }
+        }
+
+        bankTiles.forEach(tile => {
+            tile.addEventListener('click', function (e) {
+                e.stopPropagation();
+                bankTiles.forEach(t => t.classList.remove('selected'));
+                this.classList.add('selected');
+                const bKey = this.dataset.bank || 'HDFC';
+                const bName = bKey === 'SBI' ? 'State Bank of India (SBI)' : (bKey === 'PNB' ? 'Punjab National Bank (PNB)' : (bKey + ' Bank'));
+                updateSelectedBank(bKey, bName);
+                const otherSelect = document.getElementById('netbanking-other-select');
+                if (otherSelect) otherSelect.value = '';
+            });
+        });
+
+        const netbankingSelect = document.getElementById('netbanking-other-select');
+        if (netbankingSelect) {
+            netbankingSelect.addEventListener('change', function (e) {
+                e.stopPropagation();
+                if (this.value) {
+                    bankTiles.forEach(t => t.classList.remove('selected'));
+                    const selectedText = this.options[this.selectedIndex].text;
+                    updateSelectedBank(this.value, selectedText);
+                }
+            });
+        }
+
+        // Account Selection Mode Toggle (Saved Account vs New Account Details)
+        const cardAccountSaved = document.getElementById('card-account-saved');
+        const cardAccountNew = document.getElementById('card-account-new');
+        const radioAccountSaved = document.getElementById('mode_saved_account');
+        const radioAccountNew = document.getElementById('mode_new_account');
+        const nbAcctNumberInput = document.getElementById('bank_account_number');
+        const nbConfirmAcctInput = document.getElementById('confirm_bank_account_number');
+        const nbAcctMatchStatus = document.getElementById('nb-acct-match-status');
+
+        function setAccountMode(mode) {
+            if (mode === 'saved') {
+                if (radioAccountSaved) radioAccountSaved.checked = true;
+                if (cardAccountSaved) {
+                    cardAccountSaved.style.setProperty('border-color', '#1e463a', 'important');
+                    cardAccountSaved.style.setProperty('background-color', '#f0fdf4', 'important');
+                }
+                if (cardAccountNew) {
+                    cardAccountNew.style.removeProperty('border-color');
+                    cardAccountNew.style.removeProperty('background-color');
+                }
+                if (nbAcctNumberInput) nbAcctNumberInput.value = '50100482193847';
+                if (nbConfirmAcctInput) nbConfirmAcctInput.value = '50100482193847';
+                checkAccountMatch();
+            } else {
+                if (radioAccountNew) radioAccountNew.checked = true;
+                if (cardAccountNew) {
+                    cardAccountNew.style.setProperty('border-color', '#1e463a', 'important');
+                    cardAccountNew.style.setProperty('background-color', '#f0fdf4', 'important');
+                }
+                if (cardAccountSaved) {
+                    cardAccountSaved.style.removeProperty('border-color');
+                    cardAccountSaved.style.removeProperty('background-color');
+                }
+                if (nbAcctNumberInput && nbAcctNumberInput.value === '50100482193847') {
+                    nbAcctNumberInput.value = '';
+                    if (nbConfirmAcctInput) nbConfirmAcctInput.value = '';
+                    nbAcctNumberInput.focus();
+                }
+                checkAccountMatch();
+            }
+        }
+
+        if (cardAccountSaved) {
+            cardAccountSaved.addEventListener('click', function(e) {
+                setAccountMode('saved');
+            });
+        }
+        if (cardAccountNew) {
+            cardAccountNew.addEventListener('click', function(e) {
+                setAccountMode('new');
+            });
+        }
+        if (radioAccountSaved) {
+            radioAccountSaved.addEventListener('change', function() { setAccountMode('saved'); });
+        }
+        if (radioAccountNew) {
+            radioAccountNew.addEventListener('change', function() { setAccountMode('new'); });
+        }
+
+        // Auto-Fill Sample Account Helper Button
+        const btnAutofillBankAccount = document.getElementById('btn-autofill-bank-account');
+        if (btnAutofillBankAccount) {
+            btnAutofillBankAccount.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                setAccountMode('new');
+                const holderInput = document.getElementById('bank_account_holder');
+                const typeInput = document.getElementById('bank_account_type');
+                const custInput = document.getElementById('bank_customer_id');
+                const branchInput = document.getElementById('bank_branch');
+
+                if (holderInput && !holderInput.value) holderInput.value = 'Rahul Sharma';
+                if (typeInput) typeInput.value = 'Savings Account';
+                if (nbAcctNumberInput) nbAcctNumberInput.value = '50100482193847';
+                if (nbConfirmAcctInput) nbConfirmAcctInput.value = '50100482193847';
+                if (custInput) custInput.value = 'CUST70928';
+                if (branchInput) branchInput.value = 'Coimbatore Gandhipuram Branch';
+                checkAccountMatch();
+            });
+        }
+
+        // Live Real-Time Account Number Matching Checker
+        function checkAccountMatch() {
+            if (!nbAcctMatchStatus) return true;
+            const acct1 = nbAcctNumberInput ? nbAcctNumberInput.value.trim() : '';
+            const acct2 = nbConfirmAcctInput ? nbConfirmAcctInput.value.trim() : '';
+            if (!acct1 && !acct2) {
+                nbAcctMatchStatus.innerHTML = '';
+                return true;
+            }
+            if (acct2.length > 0) {
+                if (acct1 === acct2) {
+                    nbAcctMatchStatus.innerHTML = '<span class="text-success fw-bold">✓ Account numbers match perfectly</span>';
+                    return true;
+                } else {
+                    nbAcctMatchStatus.innerHTML = '<span class="text-danger fw-bold">✕ Account numbers do not match</span>';
+                    return false;
+                }
+            }
+            nbAcctMatchStatus.innerHTML = '';
+            return true;
+        }
+
+        if (nbAcctNumberInput) nbAcctNumberInput.addEventListener('input', checkAccountMatch);
+        if (nbConfirmAcctInput) nbConfirmAcctInput.addEventListener('input', checkAccountMatch);
+
+        if (btnPayNbDirect) {
+            btnPayNbDirect.addEventListener('click', function(e) {
+                switchPaymentMethod('NETBANKING');
+            });
+        }
+
+        // --- 3. Direct UPI Connection Logic (Google Pay, PhonePe, Paytm, BHIM) ---
+        const upiAppBadges = document.querySelectorAll('.upi-app-badge');
+        const upiAppSelectedInput = document.getElementById('upi_app_selected');
+        const selectedUpiAppTitle = document.getElementById('selected-upi-app-title');
+        const btnLaunchUpiApp = document.getElementById('btn-launch-upi-app');
+        const btnLaunchUpiText = document.getElementById('btn-launch-upi-text');
+        const btnShowUpiQr = document.getElementById('btn-show-upi-qr');
+
+        // Modal Elements
+        const upiPaymentModalEl = document.getElementById('upiPaymentModal');
+        const upiPaymentModal = new bootstrap.Modal(upiPaymentModalEl);
+        const modalAppName = document.getElementById('modal-app-name');
+        const modalAppIconLetter = document.getElementById('modal-app-icon-letter');
+        const modalAppIcon = document.getElementById('modal-app-icon');
+        const btnModalOpenApp = document.getElementById('btn-modal-open-app');
+        const btnModalOpenAppText = document.getElementById('btn-modal-open-app-text');
+        const upiQrImage = document.getElementById('upi-qr-image');
+        const btnSimulateUpiSuccess = document.getElementById('btn-simulate-upi-success');
+        const upiTimerEl = document.getElementById('upi-timer');
+
+        const STORE_UPI_ID = "{{ payment_setting.upi_id|default:'mayanperumal123@oksbi'|escapejs }}";
+        const STORE_MERCHANT_NAME = "{{ payment_setting.merchant_name|default:'Tech Mart'|escapejs }}";
+        const STORE_MERCHANT_NAME_ENC = encodeURIComponent(STORE_MERCHANT_NAME);
+        const STORE_UPI_NOTE = "{{ payment_setting.upi_note|default:'Tech Mart Order'|escapejs }}";
+        const STORE_UPI_NOTE_ENC = encodeURIComponent(STORE_UPI_NOTE);
+        const STORE_QR_URL = "{{ payment_setting.get_qr_url|escapejs }}";
+
+        let currentUpiApp = 'gpay';
+        let currentUpiIntent = `intent://pay?pa=${STORE_UPI_ID}&pn=${STORE_MERCHANT_NAME_ENC}&am={{ cart.grand_total }}&cu=INR&tn=${STORE_UPI_NOTE_ENC}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
+        let currentUpiVpa = STORE_UPI_ID;
+        let upiCountdownInterval = null;
+        window.upiPaymentConfirmed = false;
+
+        const upiAppConfig = {
+            'gpay': {
+                name: 'Google Pay',
+                letter: 'G',
+                bg: '#e8f0fe',
+                color: '#1a73e8',
+                vpa: STORE_UPI_ID,
+                androidIntent: `intent://pay?pa=${STORE_UPI_ID}&pn=${STORE_MERCHANT_NAME_ENC}&am={{ cart.grand_total }}&cu=INR&tn=${STORE_UPI_NOTE_ENC}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`,
+                intent: `upi://pay?pa=${STORE_UPI_ID}&pn=${STORE_MERCHANT_NAME_ENC}&am={{ cart.grand_total }}&cu=INR&tn=${STORE_UPI_NOTE_ENC}`,
+                webUrl: "https://pay.google.com/"
+            },
+            'phonepe': {
+                name: 'PhonePe',
+                letter: 'पे',
+                bg: '#f3e8fd',
+                color: '#5f259f',
+                vpa: STORE_UPI_ID,
+                androidIntent: `intent://pay?pa=${STORE_UPI_ID}&pn=${STORE_MERCHANT_NAME_ENC}&am={{ cart.grand_total }}&cu=INR&tn=${STORE_UPI_NOTE_ENC}#Intent;scheme=upi;package=com.phonepe.app;end`,
+                intent: `phonepe://pay?pa=${STORE_UPI_ID}&pn=${STORE_MERCHANT_NAME_ENC}&am={{ cart.grand_total }}&cu=INR&tn=${STORE_UPI_NOTE_ENC}`,
+                webUrl: "https://www.phonepe.com/"
+            },
+            'paytm': {
+                name: 'Paytm UPI',
+                letter: 'Paytm',
+                bg: '#e0f7fa',
+                color: '#002970',
+                vpa: STORE_UPI_ID,
+                androidIntent: `intent://pay?pa=${STORE_UPI_ID}&pn=${STORE_MERCHANT_NAME_ENC}&am={{ cart.grand_total }}&cu=INR&tn=${STORE_UPI_NOTE_ENC}#Intent;scheme=upi;package=net.one97.paytm;end`,
+                intent: `paytmmp://pay?pa=${STORE_UPI_ID}&pn=${STORE_MERCHANT_NAME_ENC}&am={{ cart.grand_total }}&cu=INR&tn=${STORE_UPI_NOTE_ENC}`,
+                webUrl: "https://paytm.com/"
+            },
+            'bhim': {
+                name: 'BHIM / Any UPI',
+                letter: 'BHIM',
+                bg: '#fff3e0',
+                color: '#e65100',
+                vpa: STORE_UPI_ID,
+                androidIntent: `intent://pay?pa=${STORE_UPI_ID}&pn=${STORE_MERCHANT_NAME_ENC}&am={{ cart.grand_total }}&cu=INR&tn=${STORE_UPI_NOTE_ENC}#Intent;scheme=upi;package=in.org.npci.upiapp;end`,
+                intent: `upi://pay?pa=${STORE_UPI_ID}&pn=${STORE_MERCHANT_NAME_ENC}&am={{ cart.grand_total }}&cu=INR&tn=${STORE_UPI_NOTE_ENC}`,
+                webUrl: "https://www.bhimupi.org.in/"
+            }
+        };
+
+        function selectUpiApp(appKey) {
+            currentUpiApp = appKey;
+            upiAppSelectedInput.value = appKey;
+            const cfg = upiAppConfig[appKey] || upiAppConfig['gpay'];
+
+            upiAppBadges.forEach(badge => {
+                if (badge.dataset.app === appKey) {
+                    badge.classList.add('active');
+                } else {
+                    badge.classList.remove('active');
+                }
+            });
+
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const activeIntent = (isAndroid && cfg.androidIntent) ? cfg.androidIntent : cfg.intent;
+            currentUpiIntent = activeIntent;
+            currentUpiVpa = cfg.vpa;
+
+            if (selectedUpiAppTitle) {
+                selectedUpiAppTitle.innerHTML = `<span class="material-symbols-outlined text-success fs-5">bolt</span> Pay via ${cfg.name}`;
+            }
+            if (btnLaunchUpiText) {
+                btnLaunchUpiText.innerText = `Pay ₹{{ cart.grand_total|intcomma }} with ${cfg.name}`;
+            }
+
+            // Update Modal Configuration
+            if (modalAppName) modalAppName.innerText = cfg.name;
+            if (modalAppIconLetter) modalAppIconLetter.innerText = cfg.letter;
+            if (modalAppIcon) {
+                modalAppIcon.style.background = cfg.bg;
+                modalAppIcon.style.color = cfg.color;
+            }
+            if (btnModalOpenApp) {
+                btnModalOpenApp.href = activeIntent;
+                btnModalOpenAppText.innerText = `Open ${cfg.name} App`;
+            }
+            const directDeepLink = document.getElementById('direct-upi-deeplink');
+            if (directDeepLink) {
+                directDeepLink.href = cfg.intent;
+            }
+            const directUpiVpaText = document.getElementById('direct-upi-vpa-text');
+            if (directUpiVpaText) {
+                directUpiVpaText.innerText = `upi://pay?pa=${cfg.vpa}`;
+            }
+
+            // Display configured QR code image
+            if (upiQrImage) {
+                upiQrImage.src = STORE_QR_URL;
+            }
+        }
+
+        upiAppBadges.forEach(badge => {
+            badge.addEventListener('click', function (e) {
+                e.stopPropagation();
+                selectUpiApp(this.dataset.app);
+            });
+        });
+
+        // Launch UPI App or Modal
+        function openUpiGateway() {
+            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const cfg = upiAppConfig[currentUpiApp] || upiAppConfig['gpay'];
+
+            // Automatically attempt to launch the app directly
+            const targetIntent = (isAndroid && cfg.androidIntent) ? cfg.androidIntent : cfg.intent;
+            if (isMobile) {
+                window.location.href = targetIntent;
+            }
+            upiPaymentModal.show();
+            startUpiModalTimer(300);
+        }
+
+        if (btnLaunchUpiApp) {
+            btnLaunchUpiApp.addEventListener('click', function (e) {
+                e.stopPropagation();
+                openUpiGateway();
+            });
+        }
+        if (btnShowUpiQr) {
+            btnShowUpiQr.addEventListener('click', function (e) {
+                e.stopPropagation();
+                upiPaymentModal.show();
+                startUpiModalTimer(300);
+            });
+        }
+
+        if (btnModalOpenApp) {
+            btnModalOpenApp.addEventListener('click', function (e) {
+                const cfg = upiAppConfig[currentUpiApp] || upiAppConfig['gpay'];
+                const isAndroid = /Android/i.test(navigator.userAgent);
+                const targetIntent = (isAndroid && cfg.androidIntent) ? cfg.androidIntent : cfg.intent;
+                window.location.href = targetIntent;
+            });
+        }
+
+        // UPI Timer in Modal
+        function startUpiModalTimer(seconds) {
+            let remain = seconds;
+            if (upiCountdownInterval) clearInterval(upiCountdownInterval);
+
+            function updateTime() {
+                const mins = String(Math.floor(remain / 60)).padStart(2, '0');
+                const secs = String(remain % 60).padStart(2, '0');
+                if (upiTimerEl) upiTimerEl.innerText = `${mins}:${secs}`;
+                if (remain <= 0) {
+                    clearInterval(upiCountdownInterval);
+                    if (upiTimerEl) upiTimerEl.innerText = "00:00 (Expired)";
+                }
+                remain--;
+            }
+            updateTime();
+            upiCountdownInterval = setInterval(updateTime, 1000);
+        }
+
+        // Simulate Instant UPI Success & Submit Order Form
+        if (btnSimulateUpiSuccess) {
+            btnSimulateUpiSuccess.addEventListener('click', function () {
+                this.disabled = true;
+                this.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Confirming Payment with Bank...`;
+                window.upiPaymentConfirmed = true;
+                setTimeout(() => {
+                    upiPaymentModal.hide();
+                    checkoutForm.submit();
+                }, 800);
+            });
+        }
+
+        // UPI Manual VPA Button
+        const btnVerifyUpi = document.getElementById('btn-verify-upi');
+        const upiIdInput = document.getElementById('upi_id_input');
+        const upiFeedback = document.getElementById('upi-feedback');
+        if (btnVerifyUpi && upiIdInput) {
+            btnVerifyUpi.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const val = upiIdInput.value.trim();
+                if (val.length >= 4 && val.includes('@')) {
+                    upiFeedback.classList.remove('d-none');
+                    upiFeedback.innerHTML = `<span class="material-symbols-outlined fs-6 align-middle">check_circle</span> Payment collect request sent to <strong>${val}</strong>!`;
+                    setTimeout(() => {
+                        upiPaymentModal.show();
+                        startUpiModalTimer(300);
+                    }, 500);
+                } else {
+                    alert('Please enter a valid UPI ID (e.g. 7092862416@paytm, name@oksbi)');
+                    upiIdInput.focus();
+                }
+            });
+        }
+
+        // --- 4. Cash on Delivery (COD) OTP Verification Logic ---
+        const btnSendCodOtp = document.getElementById('btn-send-cod-otp');
+        const codOtpBtnText = document.getElementById('cod-otp-btn-text');
+        const codOtpInput = document.getElementById('cod_otp_input');
+        const btnVerifyCodOtp = document.getElementById('btn-verify-cod-otp');
+        const codDemoContainer = document.getElementById('cod-demo-container');
+        const codDemoOtpCode = document.getElementById('cod-demo-otp-code');
+        const btnAutoFillCodOtp = document.getElementById('btn-auto-fill-cod-otp');
+        const codStatus = document.getElementById('cod-verification-status');
+        const finalCodOtpInput = document.getElementById('final_cod_otp');
+
+        let codOtpGenerated = false;
+        let codOtpVerified = false;
+        let latestGeneratedOtp = '';
+        let countdownTimer = null;
+
+        function getActivePhone() {
+            const selectedRadio = document.querySelector('.address-radio:checked');
+            if (selectedRadio && selectedRadio.value !== 'new' && selectedRadio.dataset.phone) {
+                return selectedRadio.dataset.phone;
+            }
+            const newPhone = document.getElementById('new_address_phone');
+            if (newPhone && newPhone.value.trim()) {
+                return newPhone.value.trim();
+            }
+            return '{{ user.phone|default:"7092862416" }}';
+        }
+
+        function triggerSendCodOtp() {
+            const phone = getActivePhone();
+            if (codOtpBtnText) codOtpBtnText.innerText = 'Sending OTP...';
+            btnSendCodOtp.disabled = true;
+
+            fetch("{% url 'api_send_cod_otp' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ phone: phone })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        codOtpGenerated = true;
+                        latestGeneratedOtp = data.otp;
+                        if (codDemoContainer) {
+                            codDemoContainer.classList.remove('d-none');
+                            codDemoOtpCode.innerText = data.otp;
+                        }
+                        if (codStatus) {
+                            codStatus.innerHTML = `<span class="text-success fw-bold d-flex align-items-center gap-1"><span class="material-symbols-outlined fs-6">check_circle</span> OTP sent to your phone! Please enter the 6-digit code below.</span>`;
+                        }
+                        startCountdown(60);
+                    } else {
+                        btnSendCodOtp.disabled = false;
+                        if (codOtpBtnText) codOtpBtnText.innerText = 'Send Verification OTP';
+                        if (codStatus) {
+                            codStatus.innerHTML = `<span class="text-danger fw-bold">${data.message}</span>`;
+                        }
+                    }
+                })
+                .catch(err => {
+                    btnSendCodOtp.disabled = false;
+                    if (codOtpBtnText) codOtpBtnText.innerText = 'Send Verification OTP';
+                    console.error(err);
+                });
+        }
+
+        function startCountdown(seconds) {
+            let remain = seconds;
+            if (countdownTimer) clearInterval(countdownTimer);
+            btnSendCodOtp.disabled = true;
+
+            countdownTimer = setInterval(() => {
+                remain--;
+                if (remain > 0) {
+                    if (codOtpBtnText) codOtpBtnText.innerText = `Resend in ${remain}s`;
+                } else {
+                    clearInterval(countdownTimer);
+                    btnSendCodOtp.disabled = false;
+                    if (codOtpBtnText) codOtpBtnText.innerText = 'Resend OTP';
+                }
+            }, 1000);
+        }
+
+        if (btnSendCodOtp) {
+            btnSendCodOtp.addEventListener('click', function (e) {
+                e.stopPropagation();
+                triggerSendCodOtp();
+            });
+        }
+
+        // Auto-Fill Demo OTP button
+        if (btnAutoFillCodOtp) {
+            btnAutoFillCodOtp.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (latestGeneratedOtp) {
+                    codOtpInput.value = latestGeneratedOtp;
+                    verifyEnteredOtp(latestGeneratedOtp);
+                }
+            });
+        }
+
+        function verifyEnteredOtp(otpValue) {
+            if (!otpValue || otpValue.length !== 6) {
+                if (codStatus) {
+                    codStatus.innerHTML = `<span class="text-danger fw-bold">Please enter a valid 6-digit OTP.</span>`;
+                }
+                return;
+            }
+
+            fetch("{% url 'api_verify_cod_otp' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ otp: otpValue })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        codOtpVerified = true;
+                        finalCodOtpInput.value = otpValue;
+                        codOtpInput.classList.remove('is-invalid');
+                        codOtpInput.classList.add('is-valid');
+                        if (codStatus) {
+                            codStatus.innerHTML = `<span class="badge bg-success py-2 px-3 fs-6 d-inline-flex align-items-center gap-1"><span class="material-symbols-outlined fs-5">verified</span> Phone Verified for Cash on Delivery</span>`;
+                        }
+                    } else {
+                        codOtpVerified = false;
+                        codOtpInput.classList.add('is-invalid');
+                        if (codStatus) {
+                            codStatus.innerHTML = `<span class="text-danger fw-bold d-flex align-items-center gap-1"><span class="material-symbols-outlined fs-6">error</span> ${data.message}</span>`;
+                        }
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+
+        if (btnVerifyCodOtp) {
+            btnVerifyCodOtp.addEventListener('click', function (e) {
+                e.stopPropagation();
+                verifyEnteredOtp(codOtpInput.value.trim());
+            });
+        }
+
+        if (codOtpInput) {
+            codOtpInput.addEventListener('input', function () {
+                finalCodOtpInput.value = this.value.trim();
+                if (this.value.trim().length === 6) {
+                    verifyEnteredOtp(this.value.trim());
+                }
+            });
+        }
+
+        // --- 5. Form Submit Interception ---
+        if (checkoutForm) {
+            checkoutForm.addEventListener('submit', function (e) {
+                const selectedRadio = document.querySelector('input[name="payment_method"]:checked');
+                const selectedPayment = selectedRadio ? selectedRadio.value : 'UPI';
+
+                if (selectedPayment === 'COD') {
+                    const otpCode = codOtpInput ? codOtpInput.value.trim() : '';
+                    finalCodOtpInput.value = otpCode;
+
+                    if (!otpCode || otpCode.length !== 6) {
+                        e.preventDefault();
+                        alert('Cash on Delivery requires entering the 6-digit verification OTP code. Please enter the OTP to confirm your order.');
+                        if (codOtpInput) {
+                            codOtpInput.focus();
+                            codOtpInput.classList.add('is-invalid');
+                        }
+                        const codCard = document.getElementById('card-cod');
+                        if (codCard) {
+                            codCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        return false;
+                    }
+                } else if (selectedPayment === 'UPI') {
+                    if (!window.upiPaymentConfirmed) {
+                        e.preventDefault();
+                        openUpiGateway();
+                        return false;
+                    }
+                } else if (selectedPayment === 'NETBANKING') {
+                    const acctMode = document.querySelector('input[name="bank_account_mode"]:checked')?.value || 'saved';
+                    if (acctMode === 'new') {
+                        const acctNum = nbAcctNumberInput ? nbAcctNumberInput.value.trim() : '';
+                        const confirmAcctNum = nbConfirmAcctInput ? nbConfirmAcctInput.value.trim() : '';
+                        if (!acctNum || acctNum.length < 6) {
+                            e.preventDefault();
+                            alert('Please enter a valid bank account number (at least 6 digits).');
+                            if (nbAcctNumberInput) {
+                                nbAcctNumberInput.focus();
+                                nbAcctNumberInput.classList.add('is-invalid');
+                            }
+                            return false;
+                        }
+                        if (confirmAcctNum && acctNum !== confirmAcctNum) {
+                            e.preventDefault();
+                            alert('The confirmation bank account number does not match. Please verify your account numbers.');
+                            if (nbConfirmAcctInput) {
+                                nbConfirmAcctInput.focus();
+                                nbConfirmAcctInput.classList.add('is-invalid');
+                            }
+                            return false;
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize state on load
+        const initiallyChecked = document.querySelector('input[name="payment_method"]:checked');
+        if (initiallyChecked) {
+            switchPaymentMethod(initiallyChecked.value);
+        } else {
+            switchPaymentMethod('UPI');
+        }
+
+        // ==========================================
+        // Checkout Order Summary Select & Delete Logic
+        // ==========================================
+        function formatIndianCurrency(num) {
+            num = Number(num) || 0;
+            const parts = num.toFixed(2).split('.');
+            let integerPart = parts[0];
+            const decimalPart = parts[1];
+            let lastThree = integerPart.substring(integerPart.length - 3);
+            let otherNumbers = integerPart.substring(0, integerPart.length - 3);
+            if (otherNumbers !== '') {
+                lastThree = ',' + lastThree;
+            }
+            return otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree + "." + decimalPart;
+        }
+
+        const checkoutSelectAll = document.getElementById('checkout-select-all');
+        const checkoutItemRows = document.querySelectorAll('.checkout-item-row');
+        const checkoutItemCbs = document.querySelectorAll('.checkout-item-cb');
+        const checkoutBulkDelBtn = document.getElementById('checkout-bulk-del-btn');
+        const checkoutBulkDelText = document.getElementById('checkout-bulk-del-text');
+        const checkoutSelCount = document.getElementById('checkout-sel-count');
+        const summaryHeaderCount = document.getElementById('summary-header-count');
+        const priceDetailsItemsLabel = document.getElementById('price-details-items-label');
+        const priceDetailsMrp = document.getElementById('price-details-mrp');
+        const priceDetailsDiscountRow = document.getElementById('price-details-discount-row');
+        const priceDetailsDiscount = document.getElementById('price-details-discount');
+        const priceDetailsDelivery = document.getElementById('price-details-delivery');
+        const priceDetailsGst = document.getElementById('price-details-gst');
+        const priceDetailsGrandTotal = document.getElementById('price-details-grand-total');
+        const priceDetailsSavingsBox = document.getElementById('price-details-savings-box');
+        const priceDetailsSavings = document.getElementById('price-details-savings');
+        const btnPlaceOrder = document.getElementById('btn-place-order');
+        const btnPlaceOrderText = document.getElementById('btn-place-order-text');
+        const btnPayNetbankingText = document.getElementById('btn-pay-netbanking-text');
+        const standaloneDeleteForm = document.getElementById('checkout-standalone-delete-form');
+        const standaloneDeleteContainer = document.getElementById('standalone-delete-items-container');
+
+        function updateCheckoutSelectionAndPricing() {
+            let totalCheckedRows = 0;
+            let totalCheckedQty = 0;
+            let subtotal = 0;
+            let totalMrp = 0;
+
+            checkoutItemRows.forEach(row => {
+                const cb = row.querySelector('.checkout-item-cb');
+                if (cb && cb.checked) {
+                    totalCheckedRows++;
+                    const qty = parseInt(row.dataset.quantity, 10) || 1;
+                    const lineTotal = parseFloat(row.dataset.lineTotal) || 0;
+                    const lineMrp = parseFloat(row.dataset.lineMrp) || lineTotal;
+                    totalCheckedQty += qty;
+                    subtotal += lineTotal;
+                    totalMrp += lineMrp;
+                }
+            });
+
+            const totalRows = checkoutItemRows.length;
+            const totalDiscount = Math.max(0, totalMrp - subtotal);
+            const deliveryCharge = (subtotal >= 500 || subtotal === 0) ? 0 : 99;
+            const gstAmount = Math.round(subtotal * 0.18 * 100) / 100;
+            const grandTotal = subtotal + deliveryCharge;
+
+            // Update Counts
+            if (checkoutSelCount) checkoutSelCount.innerText = totalCheckedRows;
+            if (summaryHeaderCount) summaryHeaderCount.innerText = totalCheckedQty;
+            if (priceDetailsItemsLabel) {
+                priceDetailsItemsLabel.innerText = `Price (${totalCheckedQty} item${totalCheckedQty === 1 ? '' : 's'})`;
+            }
+
+            // Update MRP & Discount
+            if (priceDetailsMrp) priceDetailsMrp.innerText = '₹' + formatIndianCurrency(totalMrp);
+            if (priceDetailsDiscountRow && priceDetailsDiscount) {
+                if (totalDiscount > 0) {
+                    priceDetailsDiscountRow.style.setProperty('display', 'flex', 'important');
+                    priceDetailsDiscount.innerText = '− ₹' + formatIndianCurrency(totalDiscount);
+                } else {
+                    priceDetailsDiscountRow.style.setProperty('display', 'none', 'important');
+                }
+            }
+            if (priceDetailsSavingsBox && priceDetailsSavings) {
+                if (totalDiscount > 0) {
+                    priceDetailsSavingsBox.style.setProperty('display', 'flex', 'important');
+                    priceDetailsSavings.innerText = '₹' + formatIndianCurrency(totalDiscount);
+                } else {
+                    priceDetailsSavingsBox.style.setProperty('display', 'none', 'important');
+                }
+            }
+
+            // Update Delivery Charges
+            if (priceDetailsDelivery) {
+                if (deliveryCharge === 0) {
+                    priceDetailsDelivery.innerHTML = '<del class="text-muted small">₹40</del><span class="text-success fw-bold">FREE</span>';
+                } else {
+                    priceDetailsDelivery.innerHTML = '<span class="fw-bold">₹' + deliveryCharge + '</span>';
+                }
+            }
+
+            // Update GST & Grand Total
+            if (priceDetailsGst) priceDetailsGst.innerText = '₹' + formatIndianCurrency(gstAmount);
+            if (priceDetailsGrandTotal) priceDetailsGrandTotal.innerText = '₹' + formatIndianCurrency(grandTotal);
+
+            // Update Action Buttons
+            const formattedTotal = formatIndianCurrency(grandTotal);
+            if (btnPlaceOrderText) {
+                const currentMethod = document.querySelector('input[name="payment_method"]:checked')?.value || 'UPI';
+                if (currentMethod === 'COD') {
+                    btnPlaceOrderText.innerText = `Confirm COD Order (₹${formattedTotal})`;
+                } else {
+                    btnPlaceOrderText.innerText = `Place Order & Pay via ${currentMethod} (₹${formattedTotal})`;
+                }
+            }
+            if (btnLaunchUpiText) {
+                btnLaunchUpiText.innerText = `Pay ₹${formattedTotal} with Google Pay`;
+            }
+            if (btnPayNetbankingText) {
+                const bankName = document.getElementById('selected_bank_name')?.value || 'HDFC Net Banking';
+                btnPayNetbankingText.innerText = `Pay ₹${formattedTotal} via ${bankName}`;
+            }
+
+            // Update Modal Deep Links with current selection total & UPI ID
+            const modalPayableAmount = document.getElementById('modal-payable-amount');
+            if (modalPayableAmount) modalPayableAmount.innerText = `₹${formattedTotal}`;
+            const btnModalOpenApp = document.getElementById('btn-modal-open-app');
+            if (btnModalOpenApp) {
+                btnModalOpenApp.href = `intent://pay?pa=${STORE_UPI_ID}&pn=${STORE_MERCHANT_NAME_ENC}&am=${grandTotal.toFixed(2)}&cu=INR&tn=${STORE_UPI_NOTE_ENC}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
+            }
+            const directDeepLink = document.getElementById('direct-upi-deeplink');
+            if (directDeepLink) {
+                directDeepLink.href = `upi://pay?pa=${STORE_UPI_ID}&pn=${STORE_MERCHANT_NAME_ENC}&am=${grandTotal.toFixed(2)}&cu=INR&tn=${STORE_UPI_NOTE_ENC}`;
+            }
+
+            // Select All Checkbox state
+            if (checkoutSelectAll && totalRows > 0) {
+                checkoutSelectAll.checked = (totalCheckedRows === totalRows);
+                checkoutSelectAll.indeterminate = (totalCheckedRows > 0 && totalCheckedRows < totalRows);
+            }
+
+            // Bulk Delete Button state
+            if (checkoutBulkDelBtn) {
+                checkoutBulkDelBtn.disabled = (totalCheckedRows === 0);
+                if (totalCheckedRows > 0) {
+                    checkoutBulkDelBtn.className = 'btn btn-sm btn-danger d-inline-flex align-items-center gap-1 py-1 px-2.5 rounded-pill';
+                    if (checkoutBulkDelText) checkoutBulkDelText.innerText = `Delete Selected (${totalCheckedRows})`;
+                } else {
+                    checkoutBulkDelBtn.className = 'btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 py-1 px-2.5 rounded-pill';
+                    if (checkoutBulkDelText) checkoutBulkDelText.innerText = `Delete Selected`;
+                }
+            }
+
+            // Place Order Button state
+            if (btnPlaceOrder) {
+                if (totalCheckedRows === 0) {
+                    btnPlaceOrder.disabled = true;
+                    btnPlaceOrder.style.opacity = '0.5';
+                    btnPlaceOrder.style.cursor = 'not-allowed';
+                    btnPlaceOrder.title = 'Please select at least 1 item to place order';
+                } else {
+                    btnPlaceOrder.disabled = false;
+                    btnPlaceOrder.style.opacity = '1';
+                    btnPlaceOrder.style.cursor = 'pointer';
+                    btnPlaceOrder.title = '';
+                }
+            }
+        }
+
+        if (checkoutSelectAll) {
+            checkoutSelectAll.addEventListener('change', function() {
+                checkoutItemCbs.forEach(cb => cb.checked = checkoutSelectAll.checked);
+                updateCheckoutSelectionAndPricing();
+            });
+        }
+
+        checkoutItemCbs.forEach(cb => {
+            cb.addEventListener('change', updateCheckoutSelectionAndPricing);
+        });
+
+        // Bulk Delete Handler
+        if (checkoutBulkDelBtn) {
+            checkoutBulkDelBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const checkedCbs = document.querySelectorAll('.checkout-item-cb:checked');
+                if (checkedCbs.length === 0) {
+                    alert('Please select at least one item to delete.');
+                    return;
+                }
+                const count = checkedCbs.length;
+                if (confirm(`Are you sure you want to remove the ${count} selected item(s) from your order?`)) {
+                    if (standaloneDeleteForm && standaloneDeleteContainer) {
+                        standaloneDeleteContainer.innerHTML = '';
+                        checkedCbs.forEach(cb => {
+                            const inp = document.createElement('input');
+                            inp.type = 'hidden';
+                            inp.name = 'selected_items';
+                            inp.value = cb.value;
+                            standaloneDeleteContainer.appendChild(inp);
+                        });
+                        standaloneDeleteForm.action = "{% url 'bulk_remove_from_cart' %}";
+                        standaloneDeleteForm.submit();
+                    }
+                }
+            });
+        }
+
+        // Single Item Delete Handler
+        document.querySelectorAll('.checkout-single-del-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const itemId = this.dataset.itemId;
+                const itemName = this.dataset.itemName;
+                if (confirm(`Are you sure you want to remove '${itemName}' from your order?`)) {
+                    if (standaloneDeleteForm && standaloneDeleteContainer) {
+                        standaloneDeleteContainer.innerHTML = '';
+                        standaloneDeleteForm.action = `/cart/remove/${itemId}/`;
+                        standaloneDeleteForm.submit();
+                    }
+                }
+            });
+        });
+
+        // Run pricing calculation on page load
+        updateCheckoutSelectionAndPricing();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Bank Payment Gateway - {{ bank_name }} | Tech Mart{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bank-portal-container {
+        max-width: 650px;
+        margin: 2rem auto;
+    }
+    .bank-header {
+        border-radius: 16px 16px 0 0;
+        padding: 1.5rem;
+        color: #ffffff;
+    }
+    .bank-header-hdfc { background: linear-gradient(135deg, #004c8f, #002c53); }
+    .bank-header-sbi { background: linear-gradient(135deg, #280071, #00b5ef); }
+    .bank-header-icici { background: linear-gradient(135deg, #a02022, #f37024); }
+    .bank-header-axis { background: linear-gradient(135deg, #97144d, #580327); }
+    .bank-header-kotak { background: linear-gradient(135deg, #ed1b24, #990000); }
+    .bank-header-card { background: linear-gradient(135deg, #1a1f71, #f79e1b); }
+    .bank-header-upi { background: linear-gradient(135deg, #097937, #03451d); }
+    .bank-header-default { background: linear-gradient(135deg, #1e463a, #143329); }
+    .bank-card {
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+        background: #ffffff;
+    }
+    .otp-bank-input {
+        letter-spacing: 6px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-align: center;
+        max-width: 280px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="bank-portal-container">
+        <!-- Bank Portal Card -->
+        <div class="bank-card">
+            <!-- Dynamic Bank Header Banner -->
+            <div class="bank-header d-flex justify-content-between align-items-center {% if 'HDFC' in bank_name %}bank-header-hdfc{% elif 'SBI' in bank_name %}bank-header-sbi{% elif 'ICICI' in bank_name %}bank-header-icici{% elif 'Axis' in bank_name or 'AXIS' in bank_name %}bank-header-axis{% elif 'Kotak' in bank_name %}bank-header-kotak{% elif order.payment_method == 'CARD' %}bank-header-card{% elif order.payment_method == 'UPI' %}bank-header-upi{% else %}bank-header-default{% endif %}">
+                <div>
+                    <span class="badge bg-white text-dark small fw-bold mb-1">
+                        <span class="material-symbols-outlined fs-6 align-middle text-success">lock</span> 256-BIT SECURE GATEWAY
+                    </span>
+                    <h4 class="fw-bold mb-0 font-heading">
+                        {% if order.payment_method == 'NETBANKING' %}{{ bank_name }} NetBanking Portal
+                        {% elif order.payment_method == 'CARD' %}3D-Secure Card Authorization
+                        {% elif order.payment_method == 'UPI' %}NPCI Unified Payments Gateway
+                        {% else %}{{ bank_name }} Secure Payment Portal{% endif %}
+                    </h4>
+                </div>
+                <div class="text-end">
+                    <span class="material-symbols-outlined fs-1 text-white-50">account_balance</span>
+                </div>
+            </div>
+
+            <div class="p-4">
+                <!-- Order & Merchant Information Strip -->
+                <div class="bg-light p-3 rounded-3 mb-4 border">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Merchant Name:</span>
+                        <strong class="text-dark">Tech Mart Electronics India (Verified ✓)</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Order Reference:</span>
+                        <span class="font-monospace fw-bold text-dark">#{{ order.order_number }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Payment Method:</span>
+                        <span class="badge bg-secondary-subtle text-dark">{{ order.get_payment_method_display }}</span>
+                    </div>
+                    <hr class="my-2 border-secondary-subtle">
+                    <div class="d-flex justify-content-between align-items-baseline">
+                        <span class="fw-bold text-dark">Total Payable Amount:</span>
+                        <span class="fs-3 fw-bold font-heading text-success">₹{{ order.total_amount|intcomma }}</span>
+                    </div>
+                </div>
+
+                <!-- Bank Authorization Details -->
+                <div class="border rounded-3 p-3 p-md-4 mb-4 bg-white">
+                    <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-dark">
+                        <span class="material-symbols-outlined text-primary fs-5">verified_user</span>
+                        <span>Bank Customer Authorization</span>
+                    </h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label small text-muted">Selected Bank</label>
+                            <input type="text" class="form-control form-control-sm bg-light fw-bold text-dark" value="{{ bank_name }}" readonly>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small text-muted">Account Holder Name</label>
+                            <input type="text" class="form-control form-control-sm bg-light fw-semibold text-dark" value="{{ account_holder }}" readonly>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small text-muted">Debited Account Number</label>
+                            <input type="text" class="form-control form-control-sm bg-light font-monospace fw-bold text-dark" value="{{ masked_account }} ({{ account_type }})" readonly>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small text-muted">IFSC Code & Branch</label>
+                            <input type="text" class="form-control form-control-sm bg-light font-monospace" value="{{ bank_ifsc }}{% if bank_branch %} • {{ bank_branch }}{% endif %}" readonly>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small text-muted">Customer ID / Net Banking ID</label>
+                            <input type="text" class="form-control form-control-sm bg-light font-monospace" value="{{ customer_id }}" readonly>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small text-muted">Registered Mobile</label>
+                            <input type="text" class="form-control form-control-sm bg-light font-monospace" value="+91 {{ order.shipping_phone }}" readonly>
+                        </div>
+                    </div>
+
+                    <!-- Demo Bank OTP Helper -->
+                    <div class="p-2 rounded mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: #eef2ff; border: 1px dashed #6366f1;">
+                        <div class="small">
+                            <span class="badge bg-primary me-1">Demo Bank OTP</span>
+                            <strong id="bank-demo-otp-code" class="font-monospace fs-6" style="letter-spacing: 2px;">{{ demo_otp }}</strong>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary py-0 px-2 fw-semibold" id="btn-auto-fill-bank-otp">
+                            Auto-Fill Bank OTP
+                        </button>
+                    </div>
+
+                    <form method="post" action="{% url 'payment_complete' order_number=order.order_number %}" id="bank-auth-form">
+                        {% csrf_token %}
+                        <div class="mb-3 text-center">
+                            <label class="form-label small fw-semibold text-muted d-block">
+                                Enter 6-Digit Bank Authorization OTP Code:
+                            </label>
+                            <input type="text" name="bank_otp" id="bank_otp_input" class="form-control otp-bank-input mx-auto mb-2" maxlength="6" placeholder="______" required inputmode="numeric">
+                            <div class="small text-muted" style="font-size: 0.75rem;">
+                                In live production, an SMS OTP is delivered by {{ bank_name }} to your mobile.
+                            </div>
+                        </div>
+
+                        <!-- Authorize Payment Button -->
+                        <button type="submit" id="btn-approve-payment" class="btn btn-success w-100 py-3 fw-bold rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2 fs-6">
+                            <span class="material-symbols-outlined fs-5">check_circle</span>
+                            <span>Authorize & Complete Payment of ₹{{ order.total_amount|intcomma }}</span>
+                        </button>
+                    </form>
+
+                    <!-- Cancel Transaction Form -->
+                    <form method="post" action="{% url 'payment_cancel' order_number=order.order_number %}" class="mt-2 text-center">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-link text-danger text-decoration-none small fw-semibold p-1">
+                            <span class="material-symbols-outlined fs-6 align-middle">cancel</span> Cancel Payment & Return to Cart
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Trust Guarantee Strip -->
+                <div class="text-center text-muted small pt-2 border-top" style="font-size: 0.75rem;">
+                    <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap">
+                        <span><span class="material-symbols-outlined fs-6 align-middle text-success">verified</span> RBI Certified</span>
+                        <span>•</span>
+                        <span><span class="material-symbols-outlined fs-6 align-middle text-primary">security</span> 256-bit TLS v1.3</span>
+                        <span>•</span>
+                        <span><span class="material-symbols-outlined fs-6 align-middle text-dark">shield</span> Fraud Protected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const btnAutoFill = document.getElementById('btn-auto-fill-bank-otp');
+        const demoOtp = "{{ demo_otp }}";
+        const otpInput = document.getElementById('bank_otp_input');
+
+        if (btnAutoFill && otpInput) {
+            btnAutoFill.addEventListener('click', function () {
+                otpInput.value = demoOtp;
+            });
+        }
+    });
+</script>
+{% endblock %}

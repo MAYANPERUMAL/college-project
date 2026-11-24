@@ -1,0 +1,905 @@
+{% load static humanize %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tech Mart - India's Trusted Tech Store{% endblock %}</title>
+
+    <!-- Zero-Flash Theme Script -->
+    <script>
+    (function() {
+        var pref = localStorage.getItem('techmart_theme_preference') || '{{ request.user.theme_preference|default:"system" }}';
+        var effective = pref;
+        if (pref === 'system') {
+            effective = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-bs-theme', effective);
+        document.documentElement.setAttribute('data-theme-preference', pref);
+    })();
+    </script>
+
+    <!-- Google Fonts (Lora, Newsreader & Playfair Display Editorial Serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400&family=Inter:wght@400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+        rel="stylesheet">
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Tech Mart Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/techmart.css' %}?v=20261122_03">
+    <!-- Theme Mode Engine CSS & JS -->
+    <link rel="stylesheet" href="{% static 'css/theme-mode.css' %}?v=20261124_01">
+    <script src="{% static 'js/theme-manager.js' %}?v=20261124_01"></script>
+    <style>
+        /* Global Priority Stacking Order: Navbar & Dropdowns ALWAYS Above Content */
+        .tm-navbar,
+        nav.tm-navbar,
+        .sticky-top.tm-navbar {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 1050 !important;
+        }
+
+        .tm-navbar .dropdown,
+        .tm-navbar .dropdown-menu,
+        .navbar .dropdown-menu,
+        .dropdown-menu {
+            z-index: 9999 !important;
+        }
+
+        /* In-page sticky elements (Cart/Checkout Summary cards, sidebar filters) must never cover navbar or dropdowns */
+        .sticky-top:not(.tm-navbar),
+        .card.sticky-top,
+        .price-details-card,
+        .price-details-card.sticky-top {
+            z-index: 5 !important;
+        }
+
+        /* Clean Modern Notification Modal Styling */
+        .notif-modal-content {
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            border-radius: 16px;
+            box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            background: #ffffff;
+        }
+        .notif-list-container {
+            max-height: 480px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f8fafc;
+        }
+        .notif-list-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .notif-list-container::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+        .notif-list-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .notif-card-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.85rem;
+            padding: 0.95rem 1.25rem;
+            border-bottom: 1px solid #f1f5f9;
+            text-decoration: none !important;
+            transition: all 0.15s ease;
+            background: #ffffff;
+            color: inherit !important;
+        }
+        .notif-card-item:hover {
+            background-color: #f8fafc !important;
+            color: inherit !important;
+        }
+        .notif-card-item.notif-unread {
+            background-color: #fbfdfc !important;
+            border-left: 3px solid #1e463a;
+        }
+        .notif-badge-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .notif-icon-order {
+            background: #eaf3ee;
+            color: #1e463a;
+            border: 1px solid rgba(30, 70, 58, 0.15);
+        }
+        .notif-icon-status {
+            background: #e0f2fe;
+            color: #0284c7;
+            border: 1px solid rgba(2, 132, 199, 0.18);
+        }
+        .notif-icon-instruction {
+            background: #fef3c7;
+            color: #b45309;
+            border: 1px solid rgba(180, 83, 9, 0.18);
+        }
+        .notif-icon-registration {
+            background: #f3e8ff;
+            color: #7c3aed;
+            border: 1px solid rgba(124, 58, 237, 0.18);
+        }
+        .notif-icon-login {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+    <!-- Main Navigation Bar -->
+    <nav class="navbar navbar-expand-lg tm-navbar sticky-top">
+        <div class="container-fluid px-3 px-md-4 px-xl-5 d-flex align-items-center">
+            <!-- Brand Logo (Non-Breaking, Premium Tech Identity) -->
+            <a class="tm-brand-logo me-3 me-xl-4 text-decoration-none" href="{% url 'home' %}">
+                <div class="tm-logo-badge">
+                    <span class="material-symbols-outlined fs-4">bolt</span>
+                </div>
+                <div class="d-flex flex-column lh-1">
+                    <span class="tm-logo-brand">Tech<span class="tm-logo-accent">Mart</span></span>
+                    <span class="tm-logo-sub">PREMIUM TECH</span>
+                </div>
+            </a>
+
+            <!-- Pincode Delivery Cue (Bug Fixed: Strict Single-Line Tag & Compact Width) -->
+            <a href="{% if user.is_authenticated %}{% url 'address_list' %}{% else %}{% url 'login' %}{% endif %}"
+                class="tm-location-cue text-decoration-none d-none d-lg-flex align-items-center gap-2 me-2 me-xl-3"
+                title="Select delivery address">
+                <div class="tm-loc-icon-wrap">
+                    <span class="material-symbols-outlined fs-5">location_on</span>
+                </div>
+                <div class="lh-1" style="max-width: 175px;">
+                    <span class="d-block tm-location-label">DELIVER TO</span>
+                    <strong class="tm-location-val text-truncate d-block">{{ delivery_city|default:'Coimbatore' }}, {{ delivery_pincode|default:'641001' }}</strong>
+                </div>
+                <span class="material-symbols-outlined fs-6 text-muted ms-1">expand_more</span>
+            </a>
+
+            <!-- Global Search Form (Simple, Neat & Spacious) -->
+            <form action="{% url 'product_list' %}" method="get"
+                class="tm-search-form flex-grow-1 mx-2 mx-xl-3 my-2 my-lg-0">
+                <div class="tm-search-box">
+                    <span class="material-symbols-outlined ms-3 text-muted fs-5 flex-shrink-0">search</span>
+                    <input type="text" name="q" class="tm-search-input"
+                        placeholder="Search products, brands and tech essentials..."
+                        value="{{ request.GET.q|default:'' }}" autocomplete="off">
+                    <button type="submit" class="tm-search-btn" title="Search">
+                        <span class="material-symbols-outlined fs-5">arrow_forward</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Right Action Icons & User Account -->
+            <div class="d-flex align-items-center gap-2 gap-lg-3 ms-auto">
+                <!-- Theme Mode Switcher Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light border rounded-pill px-2.5 py-1.5 d-flex align-items-center gap-1.5 shadow-sm theme-toggle-btn"
+                            type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Appearance: Light, Dark, or System">
+                        <span class="material-symbols-outlined fs-6 theme-current-icon">brightness_auto</span>
+                        <span class="small fw-semibold d-none d-xl-inline theme-current-label">Theme</span>
+                        <span class="material-symbols-outlined" style="font-size: 0.8rem;">expand_more</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border rounded-3 p-1.5" style="min-width: 175px; z-index: 99999 !important;">
+                        <li>
+                            <button type="button" class="dropdown-item rounded-2 d-flex align-items-center justify-content-between py-1.5 px-2.5 small" onclick="setTechMartTheme('light')">
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="material-symbols-outlined fs-6 text-warning">light_mode</span>
+                                    <span>Light Mode</span>
+                                </span>
+                                <span class="material-symbols-outlined fs-6 theme-check-icon d-none" data-theme-target="light">check</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="dropdown-item rounded-2 d-flex align-items-center justify-content-between py-1.5 px-2.5 small" onclick="setTechMartTheme('dark')">
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="material-symbols-outlined fs-6 text-primary">dark_mode</span>
+                                    <span>Dark Mode</span>
+                                </span>
+                                <span class="material-symbols-outlined fs-6 theme-check-icon d-none" data-theme-target="dark">check</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="dropdown-item rounded-2 d-flex align-items-center justify-content-between py-1.5 px-2.5 small" onclick="setTechMartTheme('system')">
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="material-symbols-outlined fs-6 text-secondary">brightness_auto</span>
+                                    <span>System Sync</span>
+                                </span>
+                                <span class="material-symbols-outlined fs-6 theme-check-icon d-none" data-theme-target="system">check</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Real-Time Notification Bell (Centered Modal Trigger) -->
+                {% if user.is_authenticated %}
+                <button class="btn tm-nav-icon-btn position-relative d-flex align-items-center justify-content-center"
+                    type="button" data-bs-toggle="modal" data-bs-target="#customerNotifModal" title="Notifications">
+                    <span class="material-symbols-outlined fs-5">notifications</span>
+                    {% if unread_notifications_count > 0 %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light tm-nav-badge">
+                        {{ unread_notifications_count }}
+                    </span>
+                    {% endif %}
+                </button>
+                {% endif %}
+
+                <!-- User Account Dropdown -->
+                {% if user.is_authenticated %}
+                <div class="dropdown">
+                    <button
+                        class="btn tm-nav-user-btn d-flex align-items-center gap-2 py-1 px-2.5 rounded-3 border dropdown-toggle-no-caret"
+                        type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Account & Lists">
+                        <div class="tm-user-avatar">
+                            {{ user.first_name|default:user.username|slice:":1"|upper }}
+                        </div>
+                        <div class="d-none d-md-flex flex-column text-start lh-1">
+                            <span class="tm-user-greeting">Hello, {{ user.first_name|default:user.username|truncatechars:10 }}</span>
+                            <strong class="tm-user-label d-flex align-items-center gap-1">
+                                Account & Lists
+                                <span class="material-symbols-outlined fs-6 text-muted">expand_more</span>
+                            </strong>
+                        </div>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow mt-2"
+                        style="min-width: 275px; z-index: 9999 !important;">
+                        <li class="px-3 py-2 border-bottom">
+                            <strong class="d-block text-dark">{{ user.get_full_name|default:user.username }}</strong>
+                            <small class="text-muted">{{ user.email }}</small>
+                            <div class="mt-1">
+                                <span class="badge bg-primary-subtle text-primary fw-semibold">{{ user.membership_tier }}</span>
+                                {% if user.is_admin_user %}
+                                <span class="badge bg-danger-subtle text-danger fw-bold">Admin</span>
+                                {% elif user.is_seller_user %}
+                                <span class="badge bg-success text-white fw-bold">Seller</span>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% if user.is_admin_user %}
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger fw-semibold"
+                                href="{% url 'admin_dashboard' %}">
+                                <span class="material-symbols-outlined fs-5">dashboard</span> Admin Dashboard
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-dark fw-semibold"
+                                href="{% url 'customer_profile' %}">
+                                <span class="material-symbols-outlined fs-5">account_circle</span> Admin Profile
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        {% elif user.is_seller_user %}
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-success fw-semibold"
+                                href="{% url 'seller_dashboard' %}">
+                                <span class="material-symbols-outlined fs-5">storefront</span> Seller Dashboard
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-success fw-semibold"
+                                href="{% url 'seller_profile' %}">
+                                <span class="material-symbols-outlined fs-5">store</span> Store Profile
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        {% elif user.is_delivery_partner %}
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-primary fw-semibold"
+                                href="{% url 'delivery_dashboard' %}">
+                                <span class="material-symbols-outlined fs-5">two_wheeler</span> Delivery Partner Portal
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-primary fw-semibold"
+                                href="{% url 'delivery_profile' %}">
+                                <span class="material-symbols-outlined fs-5">badge</span> Partner Profile
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        {% else %}
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2 fw-semibold text-dark"
+                                href="{% url 'customer_profile' %}">
+                                <span class="material-symbols-outlined fs-5 text-primary">account_circle</span> My Profile
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        {% endif %}
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+                                href="{% url 'order_history' %}">
+                                <span class="material-symbols-outlined fs-5">package_2</span> My Orders & Deliveries
+                                {% if active_orders_count %}
+                                <span class="badge bg-warning text-dark ms-auto">{{ active_orders_count }} Active</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+                                href="{% url 'notifications_list' %}">
+                                <span class="material-symbols-outlined fs-5">notifications</span> Notifications & Alerts
+                                {% if unread_notifications_count > 0 %}
+                                <span class="badge bg-danger ms-auto">{{ unread_notifications_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2"
+                                href="{% url 'address_list' %}">
+                                <span class="material-symbols-outlined fs-5">location_on</span> Manage Delivery
+                                Addresses
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{% url 'cart' %}">
+                                <span class="material-symbols-outlined fs-5">shopping_cart</span> Shopping Cart
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger fw-bold"
+                                href="{% url 'logout' %}">
+                                <span class="material-symbols-outlined fs-5">logout</span> Log Out
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                {% else %}
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{% url 'login' %}"
+                        class="btn btn-outline-primary btn-sm px-3 rounded-pill fw-semibold">Sign In</a>
+                    <a href="{% url 'register' %}"
+                        class="btn btn-primary btn-sm px-3 rounded-pill fw-semibold d-none d-sm-inline-block">Register</a>
+                </div>
+                {% endif %}
+
+                <!-- Orders Quick Link (Unified Style) -->
+                {% if user.is_authenticated %}
+                <a href="{% url 'order_history' %}"
+                    class="tm-nav-orders-btn d-none d-lg-flex flex-column text-decoration-none lh-1 py-1 px-2.5 rounded-3"
+                    title="Returns & Orders">
+                    <span class="tm-nav-orders-sub">Returns</span>
+                    <strong class="tm-nav-orders-title d-flex align-items-center gap-1">
+                        <span>& Orders</span>
+                        {% if active_orders_count %}
+                        <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.65rem;">{{ active_orders_count }}</span>
+                        {% endif %}
+                    </strong>
+                </a>
+                {% endif %}
+
+                <!-- Simple & Crystal-Clear Shopping Cart Button -->
+                <a href="{% url 'cart' %}"
+                    class="tm-nav-cart-btn text-decoration-none d-flex align-items-center gap-2 py-2 px-3 rounded-3"
+                    title="Shopping Cart">
+                    <div class="tm-cart-icon-wrap position-relative d-flex align-items-center">
+                        <span class="material-symbols-outlined fs-4 tm-cart-icon">shopping_cart</span>
+                        <span class="tm-cart-badge" id="nav-cart-badge">{{ cart_item_count|default:'0' }}</span>
+                    </div>
+                    <span class="tm-cart-text fw-bold fs-6 d-none d-sm-inline">Cart</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Category Sub-Navigation Strip (Interactive Horizontal Scroll with Arrow Controls) -->
+    <div class="tm-category-strip">
+        <div class="container-fluid px-3 px-md-4 px-xl-5 d-flex align-items-center">
+            <!-- Left Scroll Arrow Button -->
+            <button class="tm-cat-nav-arrow tm-cat-arrow-left d-flex align-items-center justify-content-center"
+                id="tm-cat-scroll-left" type="button" aria-label="Scroll left" title="Scroll left">
+                <span class="material-symbols-outlined fs-5">chevron_left</span>
+            </button>
+
+            <!-- Scrollable Category Shelf -->
+            <div class="d-flex align-items-center gap-1 overflow-x-auto py-1 tm-cat-scrollable flex-grow-1"
+                id="tm-cat-nav-scroll">
+                <a href="{% url 'product_list' %}"
+                    class="tm-cat-pill d-flex align-items-center gap-1 fw-bold {% if not request.GET.category and not request.GET.deal %}active{% endif %}">
+                    <span class="material-symbols-outlined fs-6">grid_view</span> All Products
+                </a>
+                <span class="tm-cat-divider"></span>
+                {% for cat in all_categories %}
+                <a href="{% url 'product_list' %}?category={{ cat.slug }}"
+                    class="tm-cat-pill {% if request.GET.category == cat.slug %}active{% endif %}">
+                    {{ cat.name }}
+                </a>
+                {% endfor %}
+            </div>
+
+            <!-- Right Scroll Arrow Button -->
+            <button class="tm-cat-nav-arrow tm-cat-arrow-right d-flex align-items-center justify-content-center"
+                id="tm-cat-scroll-right" type="button" aria-label="Scroll right" title="Scroll right">
+                <span class="material-symbols-outlined fs-5">chevron_right</span>
+            </button>
+
+            <!-- Top Offers / Deals Pill -->
+            <div class="d-none d-lg-flex align-items-center gap-2 flex-shrink-0 ms-2 ps-2 border-start">
+                <a href="{% url 'product_list' %}?deal=1"
+                    class="tm-deal-pill {% if request.GET.deal %}active{% endif %} text-decoration-none d-flex align-items-center gap-1.5">
+                    <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.65rem;">DEALS</span>
+                    <span>Top Offers</span>
+                    <span class="material-symbols-outlined fs-6">bolt</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Django Flash Messages -->
+    <div class="container-fluid px-3 px-md-4 px-xl-5 mt-3">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show d-flex align-items-center gap-2 py-2 shadow-sm rounded-3"
+            role="alert">
+            {% if message.tags == 'success' %}
+            <span class="material-symbols-outlined text-success fs-5">check_circle</span>
+            {% elif message.tags == 'error' or message.tags == 'danger' %}
+            <span class="material-symbols-outlined text-danger fs-5">error</span>
+            {% elif message.tags == 'warning' %}
+            <span class="material-symbols-outlined text-warning-emphasis fs-5">warning</span>
+            {% else %}
+            <span class="material-symbols-outlined text-primary fs-5">info</span>
+            {% endif %}
+            <div class="flex-grow-1">{{ message }}</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Main Page Content -->
+    <main class="flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Trust Badges Strip -->
+    <section class="tm-trust-strip mt-5">
+        <div class="container-fluid px-3 px-md-4 px-xl-5">
+            <div class="row g-4 text-center text-md-start">
+                <div class="col-6 col-md-3">
+                    <div class="tm-trust-card">
+                        <div class="tm-trust-icon-box">
+                            <span class="material-symbols-outlined fs-2">verified</span>
+                        </div>
+                        <div>
+                            <h6 class="tm-trust-title">100% Genuine Tech</h6>
+                            <p class="tm-trust-sub">Direct from brand authorized partners</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="tm-trust-card">
+                        <div class="tm-trust-icon-box">
+                            <span class="material-symbols-outlined fs-2">published_with_changes</span>
+                        </div>
+                        <div>
+                            <h6 class="tm-trust-title">7-Day Replacement</h6>
+                            <p class="tm-trust-sub">Hassle-free doorstep tech swap</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="tm-trust-card">
+                        <div class="tm-trust-icon-box">
+                            <span class="material-symbols-outlined fs-2">local_shipping</span>
+                        </div>
+                        <div>
+                            <h6 class="tm-trust-title">Free Express Delivery</h6>
+                            <p class="tm-trust-sub">Priority shipping across 19,000+ PINs</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="tm-trust-card">
+                        <div class="tm-trust-icon-box">
+                            <span class="material-symbols-outlined fs-2">shield_locked</span>
+                        </div>
+                        <div>
+                            <h6 class="tm-trust-title">256-Bit Safe Pay</h6>
+                            <p class="tm-trust-sub">Bank-grade encrypted checkout</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comprehensive Ultra-Luxury Footer -->
+    <footer class="tm-footer pt-5 pb-4">
+        <div class="container-fluid px-3 px-md-4 px-xl-5">
+            <!-- Footer Main Multi-Column Content -->
+            <div class="row g-4 mb-5">
+                <!-- Column 1: Brand Info & Certifications -->
+                <div class="col-lg-4 pe-lg-4">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                            style="width: 42px; height: 42px; background: rgba(200, 158, 58, 0.2); border: 1px solid rgba(200, 158, 58, 0.4);">
+                            <span class="material-symbols-outlined fs-3" style="color: #fce7a8;">bolt</span>
+                        </div>
+                        <h4 class="fw-bold mb-0 tm-footer-title" style="font-size: 1.6rem;">Tech Mart</h4>
+                    </div>
+                    <p class="tm-footer-text small mb-3">
+                        India's premier marketplace for certified gadgets, top-tier consumer electronics, and computing
+                        essentials with official pan-India brand warranty and dedicated B2B/B2C GST invoicing.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <span class="badge py-1.5 px-2.5 rounded-pill fw-semibold"
+                            style="background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3);">
+                            🛡️ 100% Genuine Certified
+                        </span>
+                        <span class="badge py-1.5 px-2.5 rounded-pill fw-semibold"
+                            style="background: rgba(200, 158, 58, 0.15); color: #fde68a; border: 1px solid rgba(200, 158, 58, 0.3);">
+                            🧾 GST Invoicing Ready
+                        </span>
+                    </div>
+                    <!-- Social Media Links -->
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="#" class="tm-footer-social-btn" title="YouTube"><span
+                                class="material-symbols-outlined fs-5">smart_display</span></a>
+                        <a href="#" class="tm-footer-social-btn" title="Twitter/X"><span
+                                class="material-symbols-outlined fs-5">tag</span></a>
+                        <a href="#" class="tm-footer-social-btn" title="Instagram"><span
+                                class="material-symbols-outlined fs-5">photo_camera</span></a>
+                        <a href="#" class="tm-footer-social-btn" title="Support Chat"><span
+                                class="material-symbols-outlined fs-5">chat</span></a>
+                    </div>
+                </div>
+
+                <!-- Column 2: Popular Departments -->
+                <div class="col-6 col-lg-2">
+                    <h6 class="fw-bold mb-3 tm-footer-title">Departments</h6>
+                    <ul class="list-unstyled d-flex flex-column gap-2 mb-0">
+                        {% for cat in all_categories|slice:":7" %}
+                        <li>
+                            <a href="{% url 'product_list' %}?category={{ cat.slug }}" class="tm-footer-link">
+                                <span class="material-symbols-outlined">chevron_right</span>
+                                <span>{{ cat.name }}</span>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Column 3: Customer Care & Warranty Support -->
+                <div class="col-6 col-lg-3">
+                    <h6 class="fw-bold mb-3 tm-footer-title">Customer Care</h6>
+                    <!-- Toll-Free Helpline Box -->
+                    <a href="tel:18002008324" class="tm-footer-phone-box">
+                        <span class="material-symbols-outlined fs-3" style="color: #fce7a8;">support_agent</span>
+                        <div>
+                            <small>24×7 Toll-Free Support</small>
+                            <strong>91+ 7092-86-2416</strong>
+                        </div>
+                    </a>
+                    <ul class="list-unstyled d-flex flex-column gap-2 mt-3 mb-0">
+                        <li>
+                            <a href="mailto:support@techmart.in" class="tm-footer-link">
+                                <span class="material-symbols-outlined">mail</span>
+                                <span>support@techmart.in</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'order_history' %}" class="tm-footer-link">
+                                <span class="material-symbols-outlined">local_shipping</span>
+                                <span>Track Your Shipment</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="tm-footer-link">
+                                <span class="material-symbols-outlined">verified_user</span>
+                                <span>Brand Warranty Claims</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="tm-footer-link">
+                                <span class="material-symbols-outlined">sync</span>
+                                <span>7-Day Replacement Policy</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Column 4: Payment Modes & Security Assurance -->
+                <div class="col-lg-3">
+                    <h6 class="fw-bold mb-3 tm-footer-title">100% Safe Payments</h6>
+                    <p class="small tm-footer-text mb-3">
+                        Transactions are processed via RBI-licensed 256-bit SSL encrypted digital payment gateways with
+                        zero surcharge.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="tm-payment-pill">UPI (GPay · PhonePe · Paytm)</span>
+                        <span class="tm-payment-pill">RuPay Cards</span>
+                        <span class="tm-payment-pill">Visa / Mastercard</span>
+                        <span class="tm-payment-pill">NetBanking (50+ Banks)</span>
+                        <span class="tm-payment-pill highlight">⚡ No-Cost EMI (0% Int)</span>
+                        <span class="tm-payment-pill">Cash on Delivery (COD)</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 small tm-footer-text">
+                        <span class="material-symbols-outlined fs-6 text-success">lock</span>
+                        <span>Bank-grade 256-Bit SSL Protection</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Legal Strip -->
+            <hr class="my-4" style="border-color: rgba(255, 255, 255, 0.12);">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center small gap-2">
+                <div class="tm-footer-text">
+                    © 2026 Tech Mart India Pvt Ltd. All rights reserved. Create for Tamizhan
+                    <div>Build with MAYAN PERUMAL</div>
+                </div>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="#" class="tm-footer-link" style="font-size: 0.8rem;">Privacy Policy</a>
+                    <a href="#" class="tm-footer-link" style="font-size: 0.8rem;">Terms of Sale</a>
+                    <a href="#" class="tm-footer-link" style="font-size: 0.8rem;">Security & Trust</a>
+                    <a href="#" class="tm-footer-link" style="font-size: 0.8rem;">Grievance Redressal</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Sticky Bottom Navigation Bar (Visible on Mobile & Small Tablets) -->
+    <nav class="d-md-none fixed-bottom bg-white border-top shadow-lg py-1 px-2" style="z-index: 1030;">
+        <div class="d-flex justify-content-around align-items-center text-center">
+            <a href="{% url 'home' %}"
+                class="text-decoration-none py-1 px-2 {% if request.resolver_match.url_name == 'home' %}text-primary fw-bold{% else %}text-muted{% endif %}">
+                <span class="material-symbols-outlined d-block fs-5 mx-auto">home</span>
+                <small style="font-size: 0.65rem;">Home</small>
+            </a>
+            <a href="{% url 'product_list' %}"
+                class="text-decoration-none py-1 px-2 {% if request.resolver_match.url_name == 'product_list' %}text-primary fw-bold{% else %}text-muted{% endif %}">
+                <span class="material-symbols-outlined d-block fs-5 mx-auto">grid_view</span>
+                <small style="font-size: 0.65rem;">Catalog</small>
+            </a>
+            <a href="{% url 'cart' %}"
+                class="text-decoration-none py-1 px-2 position-relative {% if request.resolver_match.url_name == 'cart' %}text-primary fw-bold{% else %}text-muted{% endif %}">
+                <span class="material-symbols-outlined d-block fs-5 mx-auto">shopping_cart</span>
+                <small style="font-size: 0.65rem;">Cart</small>
+                {% if cart_item_count %}
+                <span class="position-absolute top-0 start-50 translate-middle-x badge rounded-pill bg-danger"
+                    style="font-size: 0.55rem; transform: translate(8px, 3px) !important;">{{ cart_item_count }}</span>
+                {% endif %}
+            </a>
+            <a href="{% url 'order_history' %}"
+                class="text-decoration-none py-1 px-2 {% if 'orders' in request.path %}text-primary fw-bold{% else %}text-muted{% endif %}">
+                <span class="material-symbols-outlined d-block fs-5 mx-auto">local_shipping</span>
+                <small style="font-size: 0.65rem;">Orders</small>
+            </a>
+            {% if user.is_authenticated %}
+            <a href="{% url 'customer_profile' %}"
+                class="text-decoration-none py-1 px-2 {% if 'profile' in request.path %}text-primary fw-bold{% else %}text-muted{% endif %}">
+                <span class="material-symbols-outlined d-block fs-5 mx-auto">account_circle</span>
+                <small style="font-size: 0.65rem;">Profile</small>
+            </a>
+            {% else %}
+            <a href="{% url 'login' %}" class="text-decoration-none py-1 px-2 text-muted">
+                <span class="material-symbols-outlined d-block fs-5 mx-auto">login</span>
+                <small style="font-size: 0.65rem;">Sign In</small>
+            </a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Centered Customer Notifications Modal -->
+    {% if user.is_authenticated %}
+    <div class="modal fade" id="customerNotifModal" tabindex="-1" aria-labelledby="customerNotifModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 540px;">
+            <div class="modal-content notif-modal-content">
+                <!-- Modal Header -->
+                <div class="px-4 py-3 bg-white border-bottom d-flex justify-content-between align-items-center" style="border-color: #f1f5f9 !important;">
+                    <div class="d-flex align-items-center gap-2.5">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: rgba(30, 70, 58, 0.1); color: #1e463a;">
+                            <span class="material-symbols-outlined fs-5">notifications</span>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0 text-dark" id="customerNotifModalLabel" style="letter-spacing: -0.01em;">Notifications</h6>
+                            <small class="text-muted" style="font-size: 0.72rem;">{{ unread_notifications_count }} unread</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        {% if unread_notifications_count > 0 %}
+                        <form action="{% url 'notifications_mark_all_read' %}" method="post" class="m-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-2.5 d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                                <span class="material-symbols-outlined" style="font-size: 0.9rem;">done_all</span>
+                                <span>Mark all read</span>
+                            </button>
+                        </form>
+                        {% endif %}
+                        <button type="button" class="btn-close ms-1" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                </div>
+
+                <!-- Modal Subheader: Selection & Bulk Delete Toolbar -->
+                {% if recent_notifications %}
+                <div class="px-3 py-2 bg-light border-bottom d-flex align-items-center justify-content-between" style="border-color: #f1f5f9 !important;">
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="checkbox" id="custModalSelectAll" class="form-check-input">
+                        <label for="custModalSelectAll" class="small fw-semibold text-dark mb-0" style="cursor: pointer;">Select All</label>
+                        <span class="text-muted small" id="custModalSelectedCountText">(0 selected)</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1.5">
+                        <button type="submit" form="custModalBulkDeleteForm" name="action" value="delete_selected" class="btn btn-sm btn-danger rounded-pill py-0.5 px-2.5 fw-bold d-none d-inline-flex align-items-center gap-1 shadow-sm" id="custModalDeleteSelectedBtn" style="font-size: 0.72rem;">
+                            <span class="material-symbols-outlined" style="font-size: 0.85rem;">delete</span>
+                            <span id="custModalDeleteBtnText">Delete</span>
+                        </button>
+                        <button type="submit" form="custModalBulkDeleteForm" name="action" value="clear_all" class="btn btn-sm btn-outline-danger rounded-pill py-0.5 px-2 small" style="font-size: 0.72rem;" onclick="return confirm('Delete all alerts in your inbox?');">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <form id="custModalBulkDeleteForm" method="post" action="{% url 'notifications_bulk_delete' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    
+                    <div class="modal-body p-0 notif-list-container">
+                        {% for notif in recent_notifications %}
+                        <div class="notif-card-item {% if not notif.is_read %}notif-unread{% endif %} d-flex align-items-start gap-2.5 p-3 border-bottom" style="cursor: pointer;" data-href="{% if notif.link_url %}{% url 'notification_mark_read' pk=notif.pk %}{% else %}{% url 'notifications_list' %}{% endif %}" onclick="openAlert(this);">
+                            <!-- Checkbox -->
+                            <div class="pt-1" onclick="event.stopPropagation();">
+                                <input type="checkbox" name="notification_ids" value="{{ notif.pk }}" class="form-check-input cust-modal-notif-check">
+                            </div>
+
+                            <!-- Squircle Colored Icon -->
+                            <div class="notif-badge-icon {% if notif.notification_type == 'ORDER' %}notif-icon-order{% elif notif.notification_type == 'STATUS_UPDATE' %}notif-icon-status{% elif notif.notification_type == 'INSTRUCTION' %}notif-icon-instruction{% elif notif.notification_type == 'REGISTRATION' %}notif-icon-registration{% elif notif.notification_type == 'LOGIN' %}notif-icon-login{% else %}notif-icon-order{% endif %}">
+                                <span class="material-symbols-outlined fs-5">{{ notif.icon|default:'notifications' }}</span>
+                            </div>
+
+                            <!-- Text & Details -->
+                            <div class="flex-grow-1 overflow-hidden">
+                                <div class="d-flex align-items-center justify-content-between gap-1 mb-1">
+                                    <span class="fw-bold text-dark text-truncate" style="font-size: 0.85rem;">{{ notif.title }}</span>
+                                    {% if not notif.is_read %}
+                                    <span class="badge rounded-pill" style="background: rgba(30, 70, 58, 0.12); color: #1e463a; font-size: 0.62rem; font-weight: 700;">NEW</span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-secondary mb-1 text-truncate" style="font-size: 0.76rem; line-height: 1.35;">{{ notif.message }}</p>
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center gap-1 text-muted" style="font-size: 0.7rem;">
+                                        <span class="material-symbols-outlined" style="font-size: 0.8rem;">schedule</span>
+                                        <span>{{ notif.created_at|naturaltime }}</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-light border text-danger p-0 rounded-circle d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;" title="Delete this alert" onclick="event.stopPropagation(); deleteSingleAlert('{{ notif.pk }}');">
+                                        <span class="material-symbols-outlined" style="font-size: 0.9rem;">delete</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </form>
+                {% else %}
+                <div class="modal-body p-0 notif-list-container">
+                    <div class="p-5 text-center text-muted">
+                        <span class="material-symbols-outlined fs-1 text-secondary mb-2" style="opacity: 0.5;">notifications_off</span>
+                        <h6 class="fw-bold mb-1">No Notifications</h6>
+                        <small class="text-muted">You're all caught up! New order alerts will appear here.</small>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Modal Footer -->
+                <div class="px-4 py-2.5 bg-light border-top d-flex justify-content-between align-items-center" style="border-color: #f1f5f9 !important;">
+                    <span class="text-muted small" style="font-size: 0.72rem;">Stay updated with your orders</span>
+                    <a href="{% url 'notifications_list' %}" class="btn btn-sm fw-semibold rounded-pill px-3 d-inline-flex align-items-center gap-1 shadow-sm" style="background: #1e463a; color: #ffffff;">
+                        <span>View All in Inbox</span>
+                        <span class="material-symbols-outlined fs-6">arrow_forward</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Bootstrap 5.3 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/techmart.js' %}"></script>
+    <script>
+    // Auto-sync CSRF token from active cookie before any form submit to prevent token rotation 403s
+    document.addEventListener('submit', function(e) {
+        const match = document.cookie.match(/csrftoken=([\w-]+)/);
+        if (match && match[1] && e.target && e.target.querySelector) {
+            const csrfInput = e.target.querySelector('input[name="csrfmiddlewaretoken"]');
+            if (csrfInput) {
+                csrfInput.value = match[1];
+            }
+        }
+    }, true);
+
+    // Customer Notification modal select and delete handlers
+    document.addEventListener('DOMContentLoaded', function() {
+        const custModalSelectAll = document.getElementById('custModalSelectAll');
+        const custModalCheckboxes = document.querySelectorAll('.cust-modal-notif-check');
+        const custModalDelBtn = document.getElementById('custModalDeleteSelectedBtn');
+        const custModalCountText = document.getElementById('custModalSelectedCountText');
+        const custModalDelBtnText = document.getElementById('custModalDeleteBtnText');
+
+        function updateCustModalSelection() {
+            let count = 0;
+            custModalCheckboxes.forEach(cb => {
+                if (cb.checked) count++;
+            });
+
+            if (custModalCountText) {
+                custModalCountText.textContent = '(' + count + ' selected)';
+            }
+
+            if (custModalDelBtn) {
+                if (count > 0) {
+                    custModalDelBtn.classList.remove('d-none');
+                    if (custModalDelBtnText) custModalDelBtnText.textContent = 'Delete (' + count + ')';
+                } else {
+                    custModalDelBtn.classList.add('d-none');
+                }
+            }
+
+            if (custModalSelectAll && custModalCheckboxes.length > 0) {
+                custModalSelectAll.checked = (count === custModalCheckboxes.length);
+            }
+        }
+
+        if (custModalSelectAll) {
+            custModalSelectAll.addEventListener('change', function() {
+                custModalCheckboxes.forEach(cb => {
+                    cb.checked = custModalSelectAll.checked;
+                });
+                updateCustModalSelection();
+            });
+        }
+
+        custModalCheckboxes.forEach(cb => {
+            cb.addEventListener('change', updateCustModalSelection);
+        });
+    });
+
+    function openAlert(el) {
+        if (!el) return;
+        const url = el.getAttribute('data-href');
+        if (url) window.location.href = url;
+    }
+
+    function deleteSingleAlert(pk) {
+        if (!confirm('Delete this notification alert?')) return;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/notifications/' + pk + '/delete/';
+        const match = document.cookie.match(/csrftoken=([\w-]+)/);
+        const token = match ? match[1] : '';
+        form.innerHTML = '<input type="hidden" name="csrfmiddlewaretoken" value="' + token + '"><input type="hidden" name="next" value="' + window.location.pathname + '">';
+        document.body.appendChild(form);
+        form.submit();
+    }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>
